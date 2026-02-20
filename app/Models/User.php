@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -21,6 +23,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'avatar_path'
     ];
 
     /**
@@ -45,4 +49,38 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function guruProfile(): HasOne
+    {
+        return $this->hasOne(GuruProfile::class, 'user_id');
+    }
+
+    public function siswaProfile(): HasOne
+    {
+        return $this->hasOne(SiswaProfile::class, 'user_id');
+    }
+
+    public function createdMateris(): HasMany
+    {
+        return $this->hasMany(Materi::class, 'created_by');
+    }
+
+    public function teachingMateris(): HasMany
+    {
+        return $this->hasMany(Materi::class, 'teacher_user_id');
+    }
+
+    public function testAttempts(): HasMany
+    {
+        return $this->hasMany(TestAttempt::class, 'user_id');
+    }
+
+    public function practiceSubmissions(): HasMany
+    {
+        return $this->hasMany(PracticeSubmission::class, 'user_id');
+    }
+
+    public function isAdmin(): bool {return $this->role === 'admin';}
+    public function isGuru(): bool {return $this->role === 'guru';}
+    public function isSiswa(): bool {return $this->role === 'siswa';}
 }

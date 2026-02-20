@@ -1,0 +1,46 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('test_attempts', function (Blueprint $table) {
+            $table->id();
+
+            $table->foreignId('test_id')
+                ->constrained('tests')
+                ->cascadeOnDelete();
+
+            $table->foreignId('student_user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->dateTime('started_at');
+            $table->dateTime('finished_at')->nullable();
+
+            $table->unsignedInteger('score')->nullable();
+            $table->enum('status', ['in_progress', 'submitted'])->default('in_progress');
+            $table->unsignedInteger('duration_seconds')->nullable();
+
+            $table->timestamps();
+
+            $table->unique(['test_id', 'student_user_id']);
+            $table->index(['student_user_id', 'status']);
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('test_attempts');
+    }
+};
