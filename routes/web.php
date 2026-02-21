@@ -24,4 +24,25 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
+// Admin
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Admin/Dashboard');
+    })->name('dashboard');
+});
+
+// Guru
+Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Guru/Dashboard');
+    })->name('dashboard');
+});
+
+// Siswa
+Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function() {
+    Route::get('/dashboard', function () {
+        return Inertia::render('Siswa/Dashboard');
+    })->name('dashboard');
+});
+
 require __DIR__.'/auth.php';
