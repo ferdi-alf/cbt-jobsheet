@@ -40,7 +40,6 @@ export default function Login({
             <div className="min-h-screen w-full flex items-center justify-center bg-muted/30 p-4">
                 <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
-                        {/* Icon Pendidikan di tengah */}
                         <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full border bg-background shadow-sm">
                             <GraduationCap className="h-7 w-7" />
                         </div>

@@ -1,48 +1,44 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return Auth::check()
+        ? redirect()->route('dashboard')
+        : redirect()->route('login');
+})->name('home');
+
+Route::get('/dashboard', DashboardController::class)
+    ->middleware(['auth'])
+    ->name('dashboard');
+
+Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/users', fn () => inertia('Admin/Users/Index'))->name('users.index');
+    Route::prefix('api')->group(function () {
+        Route::apiResource('users', UserController::class)->except(['create', 'edit']);
+    });
+    
+    Route::get('/kelas', fn () => inertia('Admin/Kelas/Index'))->name('kelas.index');
+    Route::get('/students/create', fn () => inertia('Admin/Students/Create'))->name('students.create');
+    Route::get('/students', fn () => inertia('Admin/Students/Index'))->name('students.index');
+    Route::get('/scores', fn () => inertia('Admin/Scores/Index'))->name('scores.index');
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+Route::middleware(['auth', 'role:admin,guru'])->group(function () {
+    Route::get('/materi', fn () => inertia('Materi/Index'))->name('materi.index');
+    Route::get('/practice-rules', fn () => inertia('Practice/Rules/Index'))->name('practice.rules.index');
+    Route::get('/practice-results', fn () => inertia('Practice/Results/Index'))->name('practice.results.index');
+    Route::get('/tests', fn () => inertia('Tests/Index'))->name('tests.index');
 });
 
-// Admin
-Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Admin/Dashboard');
-    })->name('dashboard');
+Route::middleware(['auth', 'role:siswa'])->group(function () {
+    Route::get('/my-materi', fn () => inertia('Siswa/Materi/Index'))->name('siswa.materi.index');
+    Route::get('/pretest', fn () => inertia('Siswa/Tests/Pretest'))->name('siswa.pretest');
+    Route::get('/posttest', fn () => inertia('Siswa/Tests/Posttest'))->name('siswa.posttest');
+    Route::get('/upload-practice', fn () => inertia('Siswa/Practice/Upload'))->name('siswa.practice.upload');
 });
 
-// Guru
-Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Guru/Dashboard');
-    })->name('dashboard');
-});
-
-// Siswa
-Route::middleware(['auth', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function() {
-    Route::get('/dashboard', function () {
-        return Inertia::render('Siswa/Dashboard');
-    })->name('dashboard');
-});
-
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
