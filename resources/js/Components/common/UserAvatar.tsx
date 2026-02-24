@@ -17,7 +17,9 @@ export default function UserAvatar({ src, name, className }: Props) {
     return (
         <Avatar className={className}>
             {src ? <AvatarImage src={src} alt={name ?? "User"} /> : null}
-            <AvatarFallback>{getInitials(name)}</AvatarFallback>
+            <AvatarFallback className=" bg-gray-200">
+                {getInitials(name)}
+            </AvatarFallback>
         </Avatar>
     );
 }

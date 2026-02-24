@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\LookupController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +18,10 @@ Route::get('/dashboard', DashboardController::class)
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/users', fn () => inertia('Admin/Users/Index'))->name('users.index');
+
     Route::prefix('api')->group(function () {
+        Route::get('/lookups/kelas', [LookupController::class, 'kelas']);
+        Route::get('/lookups/mapels', [LookupController::class, 'mapels']);
         Route::apiResource('users', UserController::class)->except(['create', 'edit']);
     });
     

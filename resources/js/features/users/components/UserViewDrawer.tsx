@@ -1,30 +1,12 @@
-import UserAvatar from "@/Components/common/UserAvatar";
-import BottomDrawer from "@/Components/drawers/BottomDrawer";
 import { ReactNode } from "react";
+import EntityDrawer from "@/Components/drawers/EntityDrawer";
+import UserAvatar from "@/Components/common/UserAvatar";
+import { getUser } from "../api/users.api";
+import type { UserRow } from "../types";
 
-type UserRow = {
-    id: number;
-    email: string;
-    username: string | null;
-    role: "admin" | "guru";
-    avatar_path: string | null;
-    guru?: {
-        full_name?: string;
-        nip?: string;
-        kelas?: string | null;
-        mapel?: string | null;
-    } | null;
-};
-
-export default function UserViewDrawer({
-    user,
-    children,
-}: {
-    user: UserRow;
-    children: ReactNode;
-}) {
+function UserDetailCards({ user }: { user: UserRow }) {
     return (
-        <BottomDrawer title="Detail User" trigger={children}>
+        <>
             <div className="flex items-center gap-3">
                 <UserAvatar
                     src={user.avatar_path ?? null}
@@ -63,10 +45,58 @@ export default function UserViewDrawer({
                     </>
                 )}
 
+                <div className="grid grid-cols-2 gap-3 pt-3">
+                    <div className="border rounded-lg p-3">
+                        <div className="text-xs text-muted-foreground">
+                            Materi
+                        </div>
+                        <div className="text-lg font-semibold">-</div>
+                    </div>
+                    <div className="border rounded-lg p-3">
+                        <div className="text-xs text-muted-foreground">
+                            Rules Praktik
+                        </div>
+                        <div className="text-lg font-semibold">-</div>
+                    </div>
+                </div>
+
                 <div className="pt-2 text-muted-foreground">
                     (Nanti) aktivitas: materi yang dibuat, rules praktek, dsb.
                 </div>
             </div>
-        </BottomDrawer>
+        </>
+    );
+}
+
+export default function UserViewDrawer({
+    userId,
+    trigger,
+}: {
+    userId: number;
+    trigger: ReactNode;
+}) {
+    return (
+        <EntityDrawer<UserRow>
+            variant="bottom"
+            title="Detail User"
+            trigger={trigger}
+            id={userId}
+            fetcher={(id) => getUser(Number(id))}
+            cacheKey={(id) => ["user-detail", Number(id)]}
+            render={({ data, loading, error }) => {
+                if (loading) return <div className="text-sm">Loading...</div>;
+                if (error)
+                    return (
+                        <div className="text-sm text-destructive">{error}</div>
+                    );
+                if (!data)
+                    return (
+                        <div className="text-sm text-muted-foreground">
+                            No data
+                        </div>
+                    );
+                return <UserDetailCards user={data} />;
+            }}
+        />
     );
 }

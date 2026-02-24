@@ -131,127 +131,138 @@ const DataTable = <TData extends Record<string, any>, TSubData = any>({
                 )}
             </div>
 
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            {hasExpandable && <TableHead className="w-10" />}
-                            {columns.map((column: any) => (
-                                <TableHead
-                                    key={column.key}
-                                    className={cn(getAlignClass(column.align))}
-                                    style={
-                                        column.width
-                                            ? { width: column.width }
-                                            : undefined
-                                    }
-                                >
-                                    {column.label}
-                                </TableHead>
-                            ))}
-                            {hasActions && (
-                                <TableHead className="text-right w-[100px]">
-                                    Actions
-                                </TableHead>
-                            )}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {isLoading ? (
-                            <TableSkeleton
-                                columns={columns.length}
-                                rows={loadingRows}
-                                hasExpandable={hasExpandable}
-                            />
-                        ) : error ? (
+            <div className="rounded-md border bg-background shadow-sm">
+                <div className="w-full overflow-x-auto">
+                    <Table className="min-w-[900px]">
+                        <TableHeader>
                             <TableRow>
-                                <TableCell
-                                    colSpan={totalColumns}
-                                    className="h-24 text-center text-destructive"
-                                >
-                                    Error: {error}
-                                </TableCell>
+                                {hasExpandable && (
+                                    <TableHead className="w-10" />
+                                )}
+                                {columns.map((column: any) => (
+                                    <TableHead
+                                        key={column.key}
+                                        className={cn(
+                                            getAlignClass(column.align),
+                                        )}
+                                        style={
+                                            column.width
+                                                ? { width: column.width }
+                                                : undefined
+                                        }
+                                    >
+                                        {column.label}
+                                    </TableHead>
+                                ))}
+                                {hasActions && (
+                                    <TableHead className="text-right w-[100px]">
+                                        Actions
+                                    </TableHead>
+                                )}
                             </TableRow>
-                        ) : data.length === 0 ? (
-                            <TableRow>
-                                <TableCell
-                                    colSpan={totalColumns}
-                                    className="h-24 text-center text-muted-foreground"
-                                >
-                                    {emptyMessage}
-                                </TableCell>
-                            </TableRow>
-                        ) : (
-                            data.map((row, index) => {
-                                const rowId = getRowId(row, index);
-                                const isExpanded = expandedRows.has(rowId);
-                                const canExpand =
-                                    expandable?.condition?.(row) ?? true;
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableSkeleton
+                                    columns={columns.length}
+                                    rows={loadingRows}
+                                    hasExpandable={hasExpandable}
+                                />
+                            ) : error ? (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={totalColumns}
+                                        className="h-24 text-center text-destructive"
+                                    >
+                                        Error: {error}
+                                    </TableCell>
+                                </TableRow>
+                            ) : data.length === 0 ? (
+                                <TableRow>
+                                    <TableCell
+                                        colSpan={totalColumns}
+                                        className="h-24 text-center text-muted-foreground"
+                                    >
+                                        {emptyMessage}
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                data.map((row, index) => {
+                                    const rowId = getRowId(row, index);
+                                    const isExpanded = expandedRows.has(rowId);
+                                    const canExpand =
+                                        expandable?.condition?.(row) ?? true;
 
-                                return (
-                                    <Fragment key={rowId}>
-                                        <TableRow
-                                            key={rowId}
-                                            className={cn(
-                                                striped &&
-                                                    index % 2 === 0 &&
-                                                    "bg-muted/50",
-                                            )}
-                                        >
-                                            {hasExpandable && (
-                                                <ExpandableToggle
-                                                    row={row}
-                                                    config={expandable}
-                                                    isExpanded={isExpanded}
-                                                    onToggle={() =>
-                                                        toggleRow(rowId)
-                                                    }
-                                                />
-                                            )}
-
-                                            {columns.map((column: any) => (
-                                                <TableCell
-                                                    key={column.key}
-                                                    className={getAlignClass(
-                                                        column.align,
-                                                    )}
-                                                >
-                                                    {getCellValue(row, column)}
-                                                </TableCell>
-                                            ))}
-
-                                            {hasActions && (
-                                                <TableCell className="text-center">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        {actions(row)}
-                                                    </div>
-                                                </TableCell>
-                                            )}
-                                        </TableRow>
-
-                                        {hasExpandable &&
-                                            canExpand &&
-                                            isExpanded && (
-                                                <TableRow
-                                                    key={`${rowId}-expanded`}
-                                                >
-                                                    <ExpandableContent
+                                    return (
+                                        <Fragment key={rowId}>
+                                            <TableRow
+                                                key={rowId}
+                                                className={cn(
+                                                    striped &&
+                                                        index % 2 === 0 &&
+                                                        "bg-muted/50",
+                                                )}
+                                            >
+                                                {hasExpandable && (
+                                                    <ExpandableToggle
                                                         row={row}
-                                                        rowId={rowId}
-                                                        columns={
-                                                            columns.length +
-                                                            (hasActions ? 1 : 0)
-                                                        }
                                                         config={expandable}
+                                                        isExpanded={isExpanded}
+                                                        onToggle={() =>
+                                                            toggleRow(rowId)
+                                                        }
                                                     />
-                                                </TableRow>
-                                            )}
-                                    </Fragment>
-                                );
-                            })
-                        )}
-                    </TableBody>
-                </Table>
+                                                )}
+
+                                                {columns.map((column: any) => (
+                                                    <TableCell
+                                                        key={column.key}
+                                                        className={getAlignClass(
+                                                            column.align,
+                                                        )}
+                                                    >
+                                                        {getCellValue(
+                                                            row,
+                                                            column,
+                                                        )}
+                                                    </TableCell>
+                                                ))}
+
+                                                {hasActions && (
+                                                    <TableCell className="text-center">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            {actions(row)}
+                                                        </div>
+                                                    </TableCell>
+                                                )}
+                                            </TableRow>
+
+                                            {hasExpandable &&
+                                                canExpand &&
+                                                isExpanded && (
+                                                    <TableRow
+                                                        key={`${rowId}-expanded`}
+                                                    >
+                                                        <ExpandableContent
+                                                            row={row}
+                                                            rowId={rowId}
+                                                            columns={
+                                                                columns.length +
+                                                                (hasActions
+                                                                    ? 1
+                                                                    : 0)
+                                                            }
+                                                            config={expandable}
+                                                        />
+                                                    </TableRow>
+                                                )}
+                                        </Fragment>
+                                    );
+                                })
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
             </div>
 
             {pagination.enabled && meta && (

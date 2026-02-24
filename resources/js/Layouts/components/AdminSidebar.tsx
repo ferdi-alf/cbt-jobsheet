@@ -17,13 +17,17 @@ import SidebarSection from "./SidebarSection";
 import SidebarItem from "./SidebarItem";
 import { Button } from "@/Components/ui/button";
 
-export default function AdminSidebar() {
+export default function AdminSidebar({
+    onNavigate,
+}: {
+    onNavigate?: () => void;
+}) {
     const page = usePage();
     const user = (page.props as any).auth?.user;
 
     return (
-        <aside className="hidden md:flex md:w-72 md:flex-col md:border-r md:bg-background">
-            <div className="p-4 border b">
+        <aside className=" md:flex md:w-72 md:flex-col md:border-r md:bg-background">
+            <div className="p-4 border-b">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                         <GraduationCap className="h-5 w-5" />
@@ -42,9 +46,10 @@ export default function AdminSidebar() {
                 </div>
             </div>
 
-            <nav className="flex-1 overflow-auto py-2">
+            <nav className="flex-1 h-[430px] overflow-auto py-2">
                 <div className="px-2 pt-2 space-y-1">
                     <SidebarItem
+                        onClick={onNavigate}
                         href="/dashboard"
                         icon={<LayoutDashboard className="h-4 w-4" />}
                         activePathStartsWith="/dashboard"
@@ -54,9 +59,10 @@ export default function AdminSidebar() {
                 </div>
                 <div className="px-2 pt-2 space-y-1">
                     <SidebarItem
+                        onClick={onNavigate}
                         href="/users"
                         icon={<Users className="h-4 w-4" />}
-                        activePathStartsWith="/admin/users"
+                        activePathStartsWith="/users"
                     >
                         User
                     </SidebarItem>
@@ -64,9 +70,10 @@ export default function AdminSidebar() {
 
                 <div className="px-2 pt-2 space-y-1">
                     <SidebarItem
-                        href="/admin/kelas"
+                        onClick={onNavigate}
+                        href="/kelas"
                         icon={<Layers className="h-4 w-4" />}
-                        activePathStartsWith="/admin/kelas"
+                        activePathStartsWith="/kelas"
                     >
                         Kelas
                     </SidebarItem>
@@ -75,16 +82,18 @@ export default function AdminSidebar() {
                 <SidebarSection>Management Siswa</SidebarSection>
                 <div className="px-2 pt-2 space-y-1">
                     <SidebarItem
-                        href="/admin/students/create"
+                        onClick={onNavigate}
+                        href="/students/create"
                         icon={<Plus className="h-4 w-4" />}
-                        activePathStartsWith="/admin/students/create"
+                        activePathStartsWith="/students/create"
                     >
                         Tambah Siswa
                     </SidebarItem>
                     <SidebarItem
-                        href="/admin/students"
+                        onClick={onNavigate}
+                        href="/students"
                         icon={<Table2 className="h-4 w-4" />}
-                        activePathStartsWith="/admin/students"
+                        activePathStartsWith="/students"
                     >
                         Data Siswa
                     </SidebarItem>
@@ -94,23 +103,26 @@ export default function AdminSidebar() {
                 <SidebarSection>Materi</SidebarSection>
                 <div className="px-2 pt-2 space-y-1">
                     <SidebarItem
-                        href="/admin/materi"
+                        onClick={onNavigate}
+                        href="/materi"
                         icon={<BookOpen className="h-4 w-4" />}
-                        activePathStartsWith="/admin/materi"
+                        activePathStartsWith="/materi"
                     >
                         Materi
                     </SidebarItem>
                     <SidebarItem
-                        href="/admin/practice-rules"
+                        onClick={onNavigate}
+                        href="/practice-rules"
                         icon={<ClipboardList className="h-4 w-4" />}
-                        activePathStartsWith="/admin/practice-rules"
+                        activePathStartsWith="/practice-rules"
                     >
                         Rules Praktek
                     </SidebarItem>
                     <SidebarItem
-                        href="/admin/practice-results"
+                        onClick={onNavigate}
+                        href="/practice-results"
                         icon={<ClipboardCheck className="h-4 w-4" />}
-                        activePathStartsWith="/admin/practice-results"
+                        activePathStartsWith="/practice-results"
                     >
                         Hasil Praktek
                     </SidebarItem>
@@ -118,26 +130,29 @@ export default function AdminSidebar() {
                 <div className="border-b"></div>
                 <div className="px-2 pt-2 space-y-1">
                     <SidebarItem
-                        href="/admin/tests"
+                        onClick={onNavigate}
+                        href="/tests"
                         icon={<FileQuestion className="h-4 w-4" />}
-                        activePathStartsWith="/admin/tests"
+                        activePathStartsWith="/tests"
                     >
                         Test
                     </SidebarItem>
                 </div>
                 <div className="px-2 pt-2 space-y-1">
                     <SidebarItem
-                        href="/admin/scores"
+                        onClick={onNavigate}
+                        href="/scores"
                         icon={<BarChart3 className="h-4 w-4" />}
-                        activePathStartsWith="/admin/scores"
+                        activePathStartsWith="/scores"
                     >
                         Nilai
                     </SidebarItem>
                 </div>
             </nav>
 
-            <div className="border-t p-2">
+            <div className="border-t  p-2">
                 <SidebarItem
+                    onClick={onNavigate}
                     href="/profile"
                     icon={<UserCircle2 className="h-4 w-4" />}
                 >

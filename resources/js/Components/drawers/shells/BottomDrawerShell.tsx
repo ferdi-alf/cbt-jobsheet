@@ -7,8 +7,8 @@ import {
     DrawerHeader,
     DrawerTitle,
     DrawerTrigger,
-} from "../ui/drawer";
-import { Button } from "../ui/button";
+} from "@/Components/ui/drawer";
+import { Button } from "@/Components/ui/button";
 
 type Props = {
     trigger: ReactNode;
@@ -16,9 +16,21 @@ type Props = {
     children: ReactNode;
 };
 
-export default function BottomDrawer({ trigger, title, children }: Props) {
+export default function BottomDrawerShell({
+    open,
+    onOpenChange,
+    title,
+    trigger,
+    children,
+}: {
+    open: boolean;
+    onOpenChange: (v: boolean) => void;
+    title: string;
+    trigger: ReactNode;
+    children: ReactNode;
+}) {
     return (
-        <Drawer>
+        <Drawer open={open} onOpenChange={onOpenChange}>
             <DrawerTrigger asChild>{trigger}</DrawerTrigger>
             <DrawerContent>
                 <div className="mx-auto w-full max-w-2xl">

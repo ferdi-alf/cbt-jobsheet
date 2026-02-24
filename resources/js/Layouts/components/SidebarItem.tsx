@@ -7,10 +7,10 @@ type Props = {
     icon?: ReactNode;
     children: ReactNode;
     activePathStartsWith?: string;
+    onClick?: () => void;
 };
 
 function toPathname(href: string): string {
-    // kalau href absolute, ambil pathname-nya
     try {
         return new URL(href, window.location.origin).pathname;
     } catch {
@@ -23,6 +23,7 @@ export default function SidebarItem({
     icon,
     children,
     activePathStartsWith,
+    onClick,
 }: Props) {
     const { url } = usePage();
 
@@ -32,8 +33,13 @@ export default function SidebarItem({
         ? url.startsWith(activePathStartsWith)
         : url === hrefPath;
 
+    const handleClick = () => {
+        onClick?.();
+    };
+
     return (
         <Link
+            onClick={handleClick}
             href={href}
             className={cn(
                 "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition",

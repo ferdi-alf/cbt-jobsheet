@@ -38,7 +38,7 @@ export const TableSkeleton = ({
 
 export const ExpandableRowSkeleton = ({ columns }: { columns: number }) => {
     return (
-        <TableRow>
+        <TableRow className="w-full">
             <TableCell colSpan={columns} className="p-4 bg-muted/30">
                 <div className="space-y-3">
                     <Skeleton className="h-4 w-1/4" />

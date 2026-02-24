@@ -5,6 +5,9 @@ import { createInertiaApp } from "@inertiajs/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createRoot } from "react-dom/client";
+import { Toaster } from "sonner";
+import { ProgressProvider } from "./Components/progress/ProgressProvider";
+import ProgressOverlay from "./Components/progress/ProgressOverlay";
 
 const appName = import.meta.env.VITE_APP_NAME || "Laravel";
 
@@ -29,7 +32,11 @@ createInertiaApp({
 
         root.render(
             <QueryClientProvider client={queryClient}>
-                <App {...props} />
+                <ProgressProvider>
+                    <App {...props} />
+                    <ProgressOverlay />
+                    <Toaster richColors position="top-right" />
+                </ProgressProvider>
             </QueryClientProvider>,
         );
     },
