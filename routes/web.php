@@ -2,9 +2,15 @@
 
 use App\Http\Controllers\Admin\LookupController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\KelasController;
+use App\Http\Controllers\Admin\KelasMaterialController;
+use App\Http\Controllers\Admin\KelasOverviewController;
+use App\Http\Controllers\Admin\KelasStudentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DashboardController;
+use App\Http\Requests\Admin\MapelController;
+use App\Http\Requests\Admin\MapelGuruController;
 
 Route::get('/', function () {
     return Auth::check()
@@ -25,7 +31,21 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::apiResource('users', UserController::class)->except(['create', 'edit']);
     });
     
+    
     Route::get('/kelas', fn () => inertia('Admin/Kelas/Index'))->name('kelas.index');
+    Route::prefix('api')->group( function() {
+        Route::apiResource('kelas', KelasController::class)->except('create', 'edit');
+        Route::get('kelas/{kelas}/students', [KelasStudentController::class, 'index']);
+        Route::get('kelas/{kelas}/overview', [KelasOverviewController::class, 'show']);
+        Route::get('kelas/{kelas}/materials', [KelasMaterialController::class, 'index']);
+    });
+
+    Route::get('/mapels', fn () => inertia('Admin/Mapels/Index'))->name('mapels.index');
+    Route::prefix('api')->group(function() {
+        Route::apiResource('mapels', MapelController::class)->except(['create', 'edit']);
+        Route::get('mapels/{mapel}/gurus', [MapelGuruController::class, 'index']);
+    });
+
     Route::get('/students/create', fn () => inertia('Admin/Students/Create'))->name('students.create');
     Route::get('/students', fn () => inertia('Admin/Students/Index'))->name('students.index');
     Route::get('/scores', fn () => inertia('Admin/Scores/Index'))->name('scores.index');

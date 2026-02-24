@@ -3,6 +3,7 @@ import "./bootstrap";
 
 import { createInertiaApp } from "@inertiajs/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { resolvePageComponent } from "laravel-vite-plugin/inertia-helpers";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
@@ -36,6 +37,7 @@ createInertiaApp({
                     <App {...props} />
                     <ProgressOverlay />
                     <Toaster richColors position="top-right" />
+                    <ReactQueryDevtools initialIsOpen={false} />
                 </ProgressProvider>
             </QueryClientProvider>,
         );

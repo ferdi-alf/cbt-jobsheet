@@ -27,7 +27,7 @@ export default function AdminSidebar({
 
     return (
         <aside className=" md:flex md:w-72 md:flex-col md:border-r md:bg-background">
-            <div className="p-4 border-b">
+            <div className="p-4 bg border-b">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                         <GraduationCap className="h-5 w-5" />
@@ -45,112 +45,123 @@ export default function AdminSidebar({
                     </div>
                 </div>
             </div>
+            <div className="h-[490px]  overflow-auto">
+                <nav className="flex-1 h-full   py-2">
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/dashboard"
+                            icon={<LayoutDashboard className="h-4 w-4" />}
+                            activePathStartsWith="/dashboard"
+                        >
+                            Dashboard
+                        </SidebarItem>
+                    </div>
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/users"
+                            icon={<Users className="h-4 w-4" />}
+                            activePathStartsWith="/users"
+                        >
+                            User
+                        </SidebarItem>
+                    </div>
 
-            <nav className="flex-1 h-[430px] overflow-auto py-2">
-                <div className="px-2 pt-2 space-y-1">
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/dashboard"
-                        icon={<LayoutDashboard className="h-4 w-4" />}
-                        activePathStartsWith="/dashboard"
-                    >
-                        Dashboard
-                    </SidebarItem>
-                </div>
-                <div className="px-2 pt-2 space-y-1">
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/users"
-                        icon={<Users className="h-4 w-4" />}
-                        activePathStartsWith="/users"
-                    >
-                        User
-                    </SidebarItem>
-                </div>
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/kelas"
+                            icon={<Layers className="h-4 w-4" />}
+                            activePathStartsWith="/kelas"
+                        >
+                            Kelas
+                        </SidebarItem>
+                    </div>
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/mapels"
+                            icon={<BookOpen className="h-4 w-4" />}
+                            activePathStartsWith="/mapels"
+                        >
+                            Mapel
+                        </SidebarItem>
+                    </div>
 
-                <div className="px-2 pt-2 space-y-1">
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/kelas"
-                        icon={<Layers className="h-4 w-4" />}
-                        activePathStartsWith="/kelas"
-                    >
-                        Kelas
-                    </SidebarItem>
-                </div>
+                    <SidebarSection>Management Siswa</SidebarSection>
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/students/create"
+                            icon={<Plus className="h-4 w-4" />}
+                            activePathStartsWith="/students/create"
+                        >
+                            Tambah Siswa
+                        </SidebarItem>
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/students"
+                            icon={<Table2 className="h-4 w-4" />}
+                            activePathStartsWith="/students"
+                        >
+                            Data Siswa
+                        </SidebarItem>
+                    </div>
+                    <div className="border-b"></div>
 
-                <SidebarSection>Management Siswa</SidebarSection>
-                <div className="px-2 pt-2 space-y-1">
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/students/create"
-                        icon={<Plus className="h-4 w-4" />}
-                        activePathStartsWith="/students/create"
-                    >
-                        Tambah Siswa
-                    </SidebarItem>
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/students"
-                        icon={<Table2 className="h-4 w-4" />}
-                        activePathStartsWith="/students"
-                    >
-                        Data Siswa
-                    </SidebarItem>
-                </div>
-                <div className="border-b"></div>
+                    <SidebarSection>Materi</SidebarSection>
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/materi"
+                            icon={<BookOpen className="h-4 w-4" />}
+                            activePathStartsWith="/materi"
+                        >
+                            Materi
+                        </SidebarItem>
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/practice-rules"
+                            icon={<ClipboardList className="h-4 w-4" />}
+                            activePathStartsWith="/practice-rules"
+                        >
+                            Rules Praktek
+                        </SidebarItem>
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/practice-results"
+                            icon={<ClipboardCheck className="h-4 w-4" />}
+                            activePathStartsWith="/practice-results"
+                        >
+                            Hasil Praktek
+                        </SidebarItem>
+                    </div>
+                    <div className="border-b"></div>
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/tests"
+                            icon={<FileQuestion className="h-4 w-4" />}
+                            activePathStartsWith="/tests"
+                        >
+                            Test
+                        </SidebarItem>
+                    </div>
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/scores"
+                            icon={<BarChart3 className="h-4 w-4" />}
+                            activePathStartsWith="/scores"
+                        >
+                            Nilai
+                        </SidebarItem>
+                    </div>
+                </nav>
+            </div>
 
-                <SidebarSection>Materi</SidebarSection>
-                <div className="px-2 pt-2 space-y-1">
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/materi"
-                        icon={<BookOpen className="h-4 w-4" />}
-                        activePathStartsWith="/materi"
-                    >
-                        Materi
-                    </SidebarItem>
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/practice-rules"
-                        icon={<ClipboardList className="h-4 w-4" />}
-                        activePathStartsWith="/practice-rules"
-                    >
-                        Rules Praktek
-                    </SidebarItem>
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/practice-results"
-                        icon={<ClipboardCheck className="h-4 w-4" />}
-                        activePathStartsWith="/practice-results"
-                    >
-                        Hasil Praktek
-                    </SidebarItem>
-                </div>
-                <div className="border-b"></div>
-                <div className="px-2 pt-2 space-y-1">
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/tests"
-                        icon={<FileQuestion className="h-4 w-4" />}
-                        activePathStartsWith="/tests"
-                    >
-                        Test
-                    </SidebarItem>
-                </div>
-                <div className="px-2 pt-2 space-y-1">
-                    <SidebarItem
-                        onClick={onNavigate}
-                        href="/scores"
-                        icon={<BarChart3 className="h-4 w-4" />}
-                        activePathStartsWith="/scores"
-                    >
-                        Nilai
-                    </SidebarItem>
-                </div>
-            </nav>
-
-            <div className="border-t  p-2">
+            <div className="border-t   p-2">
                 <SidebarItem
                     onClick={onNavigate}
                     href="/profile"
