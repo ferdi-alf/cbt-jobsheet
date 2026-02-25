@@ -45,7 +45,7 @@ export default function AdminSidebar({
                     </div>
                 </div>
             </div>
-            <div className="h-[490px]  overflow-auto">
+            <div className="sm:h-[490px] h-[450px]  overflow-auto">
                 <nav className="flex-1 h-full   py-2">
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
@@ -101,9 +101,9 @@ export default function AdminSidebar({
                         </SidebarItem>
                         <SidebarItem
                             onClick={onNavigate}
-                            href="/students"
+                            href="/students/data"
                             icon={<Table2 className="h-4 w-4" />}
-                            activePathStartsWith="/students"
+                            activePathStartsWith="/students/data"
                         >
                             Data Siswa
                         </SidebarItem>
@@ -161,7 +161,7 @@ export default function AdminSidebar({
                 </nav>
             </div>
 
-            <div className="border-t   p-2">
+            <div className="border-t  p-2">
                 <SidebarItem
                     onClick={onNavigate}
                     href="/profile"

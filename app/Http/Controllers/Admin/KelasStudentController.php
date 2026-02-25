@@ -4,16 +4,17 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Kelas;
+use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class KelasStudentController extends Controller
 {
+    use PaginatesApi;
+
     public function index(Kelas $kelas, Request $request)
     {
-        $page = max(1, (int) $request->query('page', 1));
-        $limit = max(1, (int) $request->query('limit', 10));
-        $search = trim((string) $request->query('search', ''));
+        ['page' => $page, 'limit' => $limit, 'search' => $search] = $this->tableParams($request);
 
         $query = DB::table('siswa_profiles')
             ->join('users', 'users.id', '=', 'siswa_profiles.user_id')
@@ -30,13 +31,11 @@ class KelasStudentController extends Controller
             ])
             ->orderBy('siswa_profiles.full_name');
 
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('siswa_profiles.full_name', 'like', "%{$search}%")
-                  ->orWhere('users.email', 'like', "%{$search}%")
-                  ->orWhere('siswa_profiles.nisn', 'like', "%{$search}%");
-            });
-        }
+        $this->applySearch($query, $search, [
+            'siswa_profiles.full_name',
+            'users.email',
+            'siswa_profiles.nisn',
+        ]);
 
         $paginator = $query->paginate($limit, ['*'], 'page', $page);
 
@@ -49,25 +48,10 @@ class KelasStudentController extends Controller
                 'nisn' => $s->nisn,
                 'gender' => $s->gender,
                 'phone' => $s->phone,
-                'created_at' => optional($s->created_at)->toDateTimeString(),
+                'created_at' => (string) $s->created_at,
             ];
         })->values();
 
-        $total = $paginator->total();
-        $totalPages = (int) ceil($total / $limit);
-
-        return response()->json([
-            'success' => true,
-            'data' => $items,
-            'meta' => [
-                'total' => $total,
-                'page' => $paginator->currentPage(),
-                'limit' => $limit,
-                'totalPages' => $totalPages,
-                'hasNextPage' => $paginator->hasMorePages(),
-                'hasPrevPage' => $paginator->currentPage() > 1,
-            ],
-            'error' => null,
-        ]);
+        return $this->paginatedResponse($paginator, $items);
     }
 }

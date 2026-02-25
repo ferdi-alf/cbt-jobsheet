@@ -6,23 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\KelasStoreRequest;
 use App\Http\Requests\Admin\KelasUpdateRequest;
 use App\Models\Kelas;
+use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-
 class KelasController extends Controller
 {
+    use PaginatesApi;
+
     public function index(Request $request)
     {
-        $page = max(1, (int) $request->query('page', 1));
-        $limit = max(1, (int) $request->query('limit', 10));
-        $search = trim((string) $request->query('search', ''));
+        ['page' => $page, 'limit' => $limit, 'search' => $search] = $this->tableParams($request);
 
         $query = Kelas::query()->orderByDesc('id');
-
-        if ($search !== '') {
-            $query->where('name', 'like', "%{$search}%");
-        }
+        $this->applySearch($query, $search, ['name']);
 
         $query->withCount([
             'siswaProfiles as total_students',
@@ -34,7 +31,7 @@ class KelasController extends Controller
                 ->whereColumn('guru_profiles.kelas_id', 'kelas.id'),
         ]);
 
-        $paginator = $query->paginate($limit, ['*'], 'page', $page);
+        $paginator = $this->paginateEloquent($query, $page, $limit);
 
         $items = collect($paginator->items())->map(function ($k) {
             return [
@@ -46,22 +43,7 @@ class KelasController extends Controller
             ];
         })->values();
 
-        $total = $paginator->total();
-        $totalPages = (int) ceil($total / $limit);
-
-        return response()->json([
-            'success' => true,
-            'data' => $items,
-            'meta' => [
-                'total' => $total,
-                'page' => $paginator->currentPage(),
-                'limit' => $limit,
-                'totalPages' => $totalPages,
-                'hasNextPage' => $paginator->hasMorePages(),
-                'hasPrevPage' => $paginator->currentPage() > 1,
-            ],
-            'error' => null,
-        ]);
+        return $this->paginatedResponse($paginator, $items);
     }
 
     public function store(KelasStoreRequest $request)
@@ -100,7 +82,8 @@ class KelasController extends Controller
         return response()->json(['success' => true, 'data' => true, 'error' => null]);
     }
 
-    public function destroy(Kelas $kelas) {
+    public function destroy(Kelas $kelas)
+    {
         $studentsCount = DB::table('siswa_profiles')->where('kelas_id', $kelas->id)->count();
         $guruCount = DB::table('guru_profiles')->where('kelas_id', $kelas->id)->distinct('user_id')->count('user_id');
 

@@ -37,7 +37,7 @@ createInertiaApp({
                     <App {...props} />
                     <ProgressOverlay />
                     <Toaster richColors position="top-right" />
-                    <ReactQueryDevtools initialIsOpen={false} />
+                    {/* <ReactQueryDevtools initialIsOpen={false} /> */}
                 </ProgressProvider>
             </QueryClientProvider>,
         );

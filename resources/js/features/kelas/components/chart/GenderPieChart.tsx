@@ -9,8 +9,8 @@ export default function GenderPieChart({
     perempuan: number;
 }) {
     const data = [
-        { name: "Laki-laki", value: laki },
-        { name: "Perempuan", value: perempuan },
+        { name: "Laki-laki", value: laki, fill: "#3b82f6" },
+        { name: "Perempuan", value: perempuan, fill: "#ec4899" },
     ];
 
     return (
@@ -26,6 +26,7 @@ export default function GenderPieChart({
                             dataKey="value"
                             nameKey="name"
                             outerRadius={80}
+                            fill="#8884d8"
                         />
                         <Tooltip />
                         <Legend />

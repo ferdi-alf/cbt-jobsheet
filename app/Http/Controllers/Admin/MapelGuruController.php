@@ -4,16 +4,17 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Mapel;
+use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class MapelGuruController extends Controller
 {
+    use PaginatesApi;
+
     public function index(Mapel $mapel, Request $request)
     {
-        $page = max(1, (int) $request->query('page', 1));
-        $limit = max(1, (int) $request->query('limit', 10));
-        $search = trim((string) $request->query('search', ''));
+        ['page' => $page, 'limit' => $limit, 'search' => $search] = $this->tableParams($request);
 
         $query = DB::table('guru_profiles as gp')
             ->join('users as u', 'u.id', '=', 'gp.user_id')
@@ -32,13 +33,11 @@ class MapelGuruController extends Controller
             ])
             ->orderBy('gp.full_name');
 
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('gp.full_name', 'like', "%{$search}%")
-                  ->orWhere('u.email', 'like', "%{$search}%")
-                  ->orWhere('gp.nip', 'like', "%{$search}%");
-            });
-        }
+        $this->applySearch($query, $search, [
+            'gp.full_name',
+            'u.email',
+            'gp.nip',
+        ]);
 
         $paginator = $query->paginate($limit, ['*'], 'page', $page);
 
@@ -51,24 +50,9 @@ class MapelGuruController extends Controller
             'gender' => $g->gender,
             'phone' => $g->phone,
             'kelas' => $g->kelas,
-            'created_at' => optional($g->created_at)->toDateTimeString(),
+            'created_at' => (string) $g->created_at,
         ])->values();
 
-        $total = $paginator->total();
-        $totalPages = (int) ceil($total / $limit);
-
-        return response()->json([
-            'success' => true,
-            'data' => $items,
-            'meta' => [
-                'total' => $total,
-                'page' => $paginator->currentPage(),
-                'limit' => $limit,
-                'totalPages' => $totalPages,
-                'hasNextPage' => $paginator->hasMorePages(),
-                'hasPrevPage' => $paginator->currentPage() > 1,
-            ],
-            'error' => null,
-        ]);
+        return $this->paginatedResponse($paginator, $items);
     }
 }

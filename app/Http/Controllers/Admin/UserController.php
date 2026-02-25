@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\UserStoreRequest;
 use App\Http\Requests\Admin\UserUpdateRequest;
 use App\Models\User;
+use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -15,11 +16,11 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
+      use PaginatesApi;
+
     public function index(Request $request)
     {
-        $page = max(1, (int) $request->query('page', 1));
-        $limit = max(1, (int) $request->query('limit', 10));
-        $search = trim((string) $request->query('search', ''));
+        ['page' => $page, 'limit' => $limit, 'search' => $search] = $this->tableParams($request);
 
         $query = User::query()
             ->where('id', '!=', $request->user()->id)
@@ -32,14 +33,14 @@ class UserController extends Controller
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('email', 'like', "%{$search}%")
-                  ->orWhere('name', 'like', "%{$search}%")
-                  ->orWhere('role', 'like', "%{$search}%"); 
+                $q->where('email', 'like', '%'.$search.'%')
+                  ->orWhere('name', 'like', '%'.$search.'%')
+                  ->orWhere('role', 'like', '%'.$search.'%');
             });
         }
 
-        $paginator = $query->paginate($limit, ['*'], 'page', $page);
-        
+        $paginator = $this->paginateEloquent($query, $page, $limit);
+
         $items = collect($paginator->items())->map(function (User $u) {
             return [
                 'id' => $u->id,
@@ -61,24 +62,8 @@ class UserController extends Controller
             ];
         })->values();
 
-        $total = $paginator->total();
-        $totalPages = (int) ceil($total / $limit);
-
-        return response()->json([
-            'success' => true,
-            'data' => $items,
-            'meta' => [
-                'total' => $total,
-                'page' => $paginator->currentPage(),
-                'limit' => $limit,
-                'totalPages' => $totalPages,
-                'hasNextPage' => $paginator->hasMorePages(),
-                'hasPrevPage' => $paginator->currentPage() > 1,
-            ],
-            'error' => null
-        ]);
+        return $this->paginatedResponse($paginator, $items);
     }
-
     /**
      * Store a newly created resource in storage.
      */

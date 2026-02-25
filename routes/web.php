@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\MapelController;
 use App\Http\Controllers\Admin\MapelGuruController;
+use App\Http\Controllers\Admin\StudentBulkController;
 
 Route::get('/', function () {
     return Auth::check()
@@ -24,7 +25,6 @@ Route::get('/dashboard', DashboardController::class)
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/users', fn () => inertia('Admin/Users/Index'))->name('users.index');
-
     Route::prefix('api')->group(function () {
         Route::get('/lookups/kelas', [LookupController::class, 'kelas']);
         Route::get('/lookups/mapels', [LookupController::class, 'mapels']);
@@ -46,7 +46,13 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('mapels/{mapel}/gurus', [MapelGuruController::class, 'index']);
     });
 
+
     Route::get('/students/create', fn () => inertia('Admin/Students/Create'))->name('students.create');
+    Route::prefix('api')->group(function () {
+        Route::post('/students/bulk', [StudentBulkController::class, 'store']);
+    });
+
+    
     Route::get('/students', fn () => inertia('Admin/Students/Index'))->name('students.index');
     Route::get('/scores', fn () => inertia('Admin/Scores/Index'))->name('scores.index');
 });

@@ -89,11 +89,7 @@ export default function KelasIndex() {
             <Head title="Kelas" />
 
             <div className="bg-background border rounded-xl shadow-sm p-4">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="text-xl font-semibold">
-                        Management Kelas
-                    </div>
-
+                <div className="flex items-center justify-end mb-4">
                     <KelasFormDialog
                         trigger={
                             <Button>

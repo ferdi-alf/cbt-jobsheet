@@ -4,15 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Mapel;
+use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 
 class MapelController extends Controller
 {
+    use PaginatesApi;
+
     public function index(Request $request)
     {
-        $page = max(1, (int) $request->query('page', 1));
-        $limit = max(1, (int) $request->query('limit', 10));
-        $search = trim((string) $request->query('search', ''));
+        ['page' => $page, 'limit' => $limit, 'search' => $search] = $this->tableParams($request);
 
         $query = Mapel::query()
             ->withCount([
@@ -21,11 +22,9 @@ class MapelController extends Controller
             ])
             ->orderByDesc('id');
 
-        if ($search !== '') {
-            $query->where('name', 'like', "%{$search}%");
-        }
+        $this->applySearch($query, $search, ['name']);
 
-        $paginator = $query->paginate($limit, ['*'], 'page', $page);
+        $paginator = $this->paginateEloquent($query, $page, $limit);
 
         $items = collect($paginator->items())->map(fn (Mapel $m) => [
             'id' => $m->id,
@@ -35,24 +34,9 @@ class MapelController extends Controller
             'created_at' => optional($m->created_at)->toDateTimeString(),
         ])->values();
 
-        $total = $paginator->total();
-        $totalPages = (int) ceil($total / $limit);
-
-        return response()->json([
-            'success' => true,
-            'data' => $items,
-            'meta' => [
-                'total' => $total,
-                'page' => $paginator->currentPage(),
-                'limit' => $limit,
-                'totalPages' => $totalPages,
-                'hasNextPage' => $paginator->hasMorePages(),
-                'hasPrevPage' => $paginator->currentPage() > 1,
-            ],
-            'error' => null,
-        ]);
+        return $this->paginatedResponse($paginator, $items);
     }
-
+    
     public function store(Request $request)
     {
         $data = $request->validate([
