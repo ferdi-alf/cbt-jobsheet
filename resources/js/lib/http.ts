@@ -90,7 +90,6 @@ export async function apiRequest<T>(
     return json.data;
 }
 
-// Helper methods (optional sugar)
 export const api = {
     get: <T>(path: string) => apiRequest<T>(path, { method: "GET" }),
     post: <T>(path: string, body?: any) =>

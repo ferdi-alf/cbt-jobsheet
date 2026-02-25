@@ -9,8 +9,8 @@ use App\Http\Controllers\Admin\KelasStudentController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\DashboardController;
-use App\Http\Requests\Admin\MapelController;
-use App\Http\Requests\Admin\MapelGuruController;
+use App\Http\Controllers\Admin\MapelController;
+use App\Http\Controllers\Admin\MapelGuruController;
 
 Route::get('/', function () {
     return Auth::check()
