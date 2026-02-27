@@ -115,17 +115,40 @@ export default function StudentsCreate() {
             bulk.setItems([emptyStudent()]);
             bulk.clearErrors();
         } catch (e: any) {
-            const status = e?.status ?? e?.response?.status;
-            const payload = e?.data ?? e?.response?.data;
-
-            if (
-                status === 422 &&
-                payload?.error === "VALIDATION_ERROR" &&
-                payload?.errors
-            ) {
-                bulk.setErrors(payload.errors);
+            if (e?.status === 422 && e?.payload?.error === "VALIDATION_ERROR") {
+                const errs = (e?.payload?.errors ?? {}) as Record<
+                    string,
+                    string[]
+                >;
+                bulk.setErrors(errs);
                 bulk.scrollToFirstError();
+
+                try {
+                    const toastInfo = buildBulkToastFromErrors(
+                        "students",
+                        errs,
+                    );
+                    if (toastInfo) {
+                        toast.error(toastInfo.title, {
+                            description: toastInfo.description,
+                        });
+                    } else {
+                        toast.error("Data tidak valid", {
+                            description:
+                                "Periksa kembali input yang ditandai merah.",
+                        });
+                    }
+                } catch {
+                    toast.error("Data tidak valid", {
+                        description:
+                            "Periksa kembali input yang ditandai merah.",
+                    });
+                }
+
+                return;
             }
+
+            toast.error("Gagal menambahkan siswa");
         }
     };
 

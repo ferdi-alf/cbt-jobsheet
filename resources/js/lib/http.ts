@@ -3,6 +3,9 @@ export type ApiResponse<T> = {
     data: T;
     meta?: any;
     error?: string | null;
+
+    // untuk kasus validation dari request kita
+    errors?: Record<string, string[]>;
 };
 
 function getCsrfToken() {
@@ -15,7 +18,6 @@ function getCsrfToken() {
 
 function getApiBaseUrl() {
     const base = (import.meta as any).env?.VITE_APP_URL as string | undefined;
-
     return (base?.trim() || window.location.origin).replace(/\/$/, "");
 }
 
@@ -34,10 +36,18 @@ export class ApiError extends Error {
     status: number;
     bodyPreview?: string;
 
-    constructor(message: string, status: number, bodyPreview?: string) {
+    // ✅ ini yang penting: bawa payload json (termasuk errors)
+    payload?: any;
+
+    constructor(
+        message: string,
+        status: number,
+        opts?: { bodyPreview?: string; payload?: any },
+    ) {
         super(message);
         this.status = status;
-        this.bodyPreview = bodyPreview;
+        this.bodyPreview = opts?.bodyPreview;
+        this.payload = opts?.payload;
     }
 }
 
@@ -65,7 +75,7 @@ export async function apiRequest<T>(
         throw new ApiError(
             "CSRF token mismatch (419). Pastikan request membawa cookie session & meta csrf-token ada.",
             419,
-            preview,
+            { bodyPreview: preview },
         );
     }
 
@@ -74,7 +84,7 @@ export async function apiRequest<T>(
         throw new ApiError(
             `Non-JSON response (${res.status}). Kemungkinan redirect/login/CSRF.`,
             res.status,
-            preview,
+            { bodyPreview: preview },
         );
     }
 
@@ -84,6 +94,7 @@ export async function apiRequest<T>(
         throw new ApiError(
             json?.error || `Request failed (${res.status})`,
             res.status,
+            { payload: json },
         );
     }
 

@@ -15,6 +15,10 @@ export function useStudentBulkMutations() {
             return res;
         } catch (e: any) {
             fail();
+            if (e?.status === 422 && e?.payload?.error === "VALIDATION_ERROR") {
+                throw e;
+            }
+
             toast.error(e?.message ?? "Gagal menambahkan siswa");
             throw e;
         }

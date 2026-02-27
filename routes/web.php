@@ -12,6 +12,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Admin\MapelController;
 use App\Http\Controllers\Admin\MapelGuruController;
 use App\Http\Controllers\Admin\StudentBulkController;
+use App\Http\Controllers\Admin\StudentController as AdminStudentController;
+use App\Http\Controllers\Petugas\StudentController as PetugasStudentController;
 
 Route::get('/', function () {
     return Auth::check()
@@ -48,16 +50,25 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
 
 
     Route::get('/students/create', fn () => inertia('Admin/Students/Create'))->name('students.create');
+    Route::get('/students/data', fn () => inertia('Admin/Students/Index'))->name('students.index');
     Route::prefix('api')->group(function () {
         Route::post('/students/bulk', [StudentBulkController::class, 'store']);
+        Route::apiResource('students', AdminStudentController::class)
+            ->only(['update', 'destroy']);
     });
 
     
-    Route::get('/students', fn () => inertia('Admin/Students/Index'))->name('students.index');
+
     Route::get('/scores', fn () => inertia('Admin/Scores/Index'))->name('scores.index');
 });
 
 Route::middleware(['auth', 'role:admin,guru'])->group(function () {
+     Route::prefix('api')->group(function () {
+        Route::get('/students', [PetugasStudentController::class, 'index']);
+        Route::get('/students/{user}', [PetugasStudentController::class, 'show']);
+    });
+
+
     Route::get('/materi', fn () => inertia('Materi/Index'))->name('materi.index');
     Route::get('/practice-rules', fn () => inertia('Practice/Rules/Index'))->name('practice.rules.index');
     Route::get('/practice-results', fn () => inertia('Practice/Results/Index'))->name('practice.results.index');
