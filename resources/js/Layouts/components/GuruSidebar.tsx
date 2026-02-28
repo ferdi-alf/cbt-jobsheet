@@ -1,23 +1,20 @@
 import { router, usePage } from "@inertiajs/react";
 import {
-    BarChart3,
-    BookOpen,
-    ClipboardCheck,
-    ClipboardList,
-    FileQuestion,
-    GraduationCap,
-    Layers,
     LayoutDashboard,
-    Plus,
-    Table2,
-    UserCircle2,
     Users,
+    BookOpen,
+    ClipboardList,
+    ClipboardCheck,
+    FileQuestion,
+    UserCircle2,
 } from "lucide-react";
-import SidebarSection from "./SidebarSection";
-import SidebarItem from "./SidebarItem";
-import { Button } from "@/Components/ui/button";
 
-export default function AdminSidebar({
+import SidebarItem from "./SidebarItem";
+import SidebarSection from "./SidebarSection";
+import { Button } from "@/Components/ui/button";
+import { GraduationCap } from "lucide-react";
+
+export default function GuruSidebar({
     onNavigate,
 }: {
     onNavigate?: () => void;
@@ -26,8 +23,8 @@ export default function AdminSidebar({
     const user = (page.props as any).auth?.user;
 
     return (
-        <aside className=" md:flex md:w-72 md:flex-col md:border-r md:bg-background">
-            <div className="p-4 bg border-b">
+        <aside className="md:flex md:w-72 md:flex-col md:border-r md:bg-background">
+            <div className="p-4 border-b">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
                         <GraduationCap className="h-5 w-5" />
@@ -35,80 +32,38 @@ export default function AdminSidebar({
 
                     <div className="min-w-0">
                         <div className="truncate text-sm font-semibold">
-                            {user?.role === "admin"
-                                ? (user?.email ?? "Admin")
-                                : (user?.name ?? "User")}
+                            {user?.name ?? user?.email ?? "Guru"}
                         </div>
                         <div className="text-xs text-muted-foreground capitalize">
-                            {user?.role ?? "admin"}
+                            {user?.role ?? "guru"}
                         </div>
                     </div>
                 </div>
             </div>
-            <div className="sm:h-[490px] h-[450px]  overflow-auto">
-                <nav className="flex-1 h-full   py-2">
+
+            <div className="h-[490px] overflow-auto">
+                <nav className="flex-1 h-full py-2">
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}
-                            href="/dashboard"
+                            href="/guru/dashboard"
                             icon={<LayoutDashboard className="h-4 w-4" />}
-                            activePathStartsWith="/dashboard"
+                            activePathStartsWith="/guru/dashboard"
                         >
                             Dashboard
                         </SidebarItem>
-                    </div>
-                    <div className="px-2 pt-2 space-y-1">
+
                         <SidebarItem
                             onClick={onNavigate}
-                            href="/users"
+                            href="/guru/students"
                             icon={<Users className="h-4 w-4" />}
-                            activePathStartsWith="/users"
-                        >
-                            User
-                        </SidebarItem>
-                    </div>
-
-                    <div className="px-2 pt-2 space-y-1">
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/kelas"
-                            icon={<Layers className="h-4 w-4" />}
-                            activePathStartsWith="/kelas"
-                        >
-                            Kelas
-                        </SidebarItem>
-                    </div>
-                    <div className="px-2 pt-2 space-y-1">
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/mapels"
-                            icon={<BookOpen className="h-4 w-4" />}
-                            activePathStartsWith="/mapels"
-                        >
-                            Mapel
-                        </SidebarItem>
-                    </div>
-
-                    <SidebarSection>Management Siswa</SidebarSection>
-                    <div className="px-2 pt-2 space-y-1">
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/students/create"
-                            icon={<Plus className="h-4 w-4" />}
-                            activePathStartsWith="/students/create"
-                        >
-                            Tambah Siswa
-                        </SidebarItem>
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/students/data"
-                            icon={<Table2 className="h-4 w-4" />}
-                            activePathStartsWith="/students/data"
+                            activePathStartsWith="/guru/students"
                         >
                             Data Siswa
                         </SidebarItem>
                     </div>
-                    <div className="border-b"></div>
+
+                    <div className="border-b my-2" />
 
                     <SidebarSection>Materi</SidebarSection>
                     <div className="px-2 pt-2 space-y-1">
@@ -137,7 +92,9 @@ export default function AdminSidebar({
                             Hasil Praktek
                         </SidebarItem>
                     </div>
-                    <div className="border-b"></div>
+
+                    <div className="border-b my-2" />
+
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}
@@ -148,20 +105,10 @@ export default function AdminSidebar({
                             Test
                         </SidebarItem>
                     </div>
-                    <div className="px-2 pt-2 space-y-1">
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/scores"
-                            icon={<BarChart3 className="h-4 w-4" />}
-                            activePathStartsWith="/scores"
-                        >
-                            Nilai
-                        </SidebarItem>
-                    </div>
                 </nav>
             </div>
 
-            <div className="border-t  p-2">
+            <div className="border-t p-2">
                 <SidebarItem
                     onClick={onNavigate}
                     href="/profile"

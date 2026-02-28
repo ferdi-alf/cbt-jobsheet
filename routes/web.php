@@ -63,6 +63,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/scores', fn () => inertia('Admin/Scores/Index'))->name('scores.index');
 });
 
+Route::middleware(['auth', 'role:guru'])->group(function () {
+    Route::get('/api/guru/me', [\App\Http\Controllers\Petugas\GuruMeController::class, 'show']);
+    Route::get('/guru/dashboard', fn () => inertia('Guru/Dashboard'))->name('guru.dashboard');
+    Route::get('/guru/students', fn () => inertia('Guru/Students/Index'))->name('guru.students.index');
+});
+
 Route::middleware(['auth', 'role:admin,guru'])->group(function () {
      Route::prefix('api')->group(function () {
         Route::get('/students', [PetugasStudentController::class, 'index']);
