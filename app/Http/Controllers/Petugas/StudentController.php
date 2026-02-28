@@ -121,7 +121,6 @@ class StudentController extends Controller
             return response()->json(['success' => false, 'data' => null, 'error' => 'Siswa tidak ditemukan'], 404);
         }
 
-        // guru: hanya boleh lihat kelasnya sendiri
         if ($auth?->role === 'guru') {
             $kelasId = DB::table('guru_profiles')->where('user_id', $auth->id)->value('kelas_id');
             if ((int) $student->kelas_id !== (int) $kelasId) {
@@ -177,20 +176,6 @@ class StudentController extends Controller
             ])
             ->get();
 
-        $practices = DB::table('practice_submissions as ps')
-            ->join('materis as m', 'm.id', '=', 'ps.materi_id')
-            ->where('ps.student_user_id', $studentId)
-            ->orderByDesc('ps.id')
-            ->limit(30)
-            ->select([
-                'ps.id',
-                'm.title as materi_title',
-                'ps.status',
-                'ps.is_late',
-                'ps.submitted_at',
-                'ps.total_score',
-            ])
-            ->get();
 
         return response()->json([
             'success' => true,
@@ -217,7 +202,6 @@ class StudentController extends Controller
                 ],
                 'tables' => [
                     'attempts' => $attempts,
-                    'practices' => $practices,
                 ],
             ],
             'error' => null,

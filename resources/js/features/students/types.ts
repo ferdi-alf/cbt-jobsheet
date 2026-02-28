@@ -2,7 +2,7 @@ export type StudentRow = {
     id: number;
     avatar_path: string | null;
     full_name: string;
-    kelas: string;
+    kelas: string | null;
     email: string;
     avg_posttest: number;
     created_at: string;
@@ -27,7 +27,7 @@ export type StudentDetail = {
         avg_posttest: number;
     };
     chart: {
-        last_posttest: Array<{
+        last_posttests: Array<{
             score: number;
             finished_at: string | null;
             materi: string;
@@ -44,14 +44,6 @@ export type StudentDetail = {
             started_at: string | null;
             finished_at: string | null;
             duration_seconds: number | null;
-        }>;
-        prectices: Array<{
-            id: number;
-            materi_title: string;
-            status: string | null;
-            is_late: boolean;
-            submitted_at: string | null;
-            total_score: number | null;
         }>;
     };
 };

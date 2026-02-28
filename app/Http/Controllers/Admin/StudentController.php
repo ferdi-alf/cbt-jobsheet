@@ -10,9 +10,9 @@ use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
 {
-    public function update(StudentUpdateRequest $request, User $user)
+    public function update(StudentUpdateRequest $request, User $student)
     {
-        if ($user->role !== 'siswa') {
+        if ($student->role !== 'siswa') {
             return response()->json([
                 'success' => false,
                 'data' => null,
@@ -22,19 +22,18 @@ class StudentController extends Controller
 
         $data = $request->validated();
 
-        DB::transaction(function () use ($data, $user) {
-            $user->update([
+        DB::transaction(function () use ($data, $student) {
+            $student->update([
                 'name' => $data['username'],
                 'email' => $data['email'],
             ]);
 
-            // password optional
             if (!empty($data['password'])) {
-                $user->update(['password' => Hash::make($data['password'])]);
+                $student->update(['password' => Hash::make($data['password'])]);
             }
 
             DB::table('siswa_profiles')
-                ->where('user_id', $user->id)
+                ->where('user_id', $student->id)
                 ->update([
                     'full_name' => $data['full_name'],
                     'nisn' => $data['nisn'],
@@ -51,9 +50,9 @@ class StudentController extends Controller
         ]);
     }
 
-    public function destroy(User $user)
+    public function destroy(User $student)
     {
-        if ($user->role !== 'siswa') {
+        if ($student->role !== 'siswa') {
             return response()->json([
                 'success' => false,
                 'data' => null,
@@ -61,10 +60,15 @@ class StudentController extends Controller
             ], 422);
         }
 
-        $studentId = $user->id;
+        $studentId = $student->id;
 
-        $attemptCount = DB::table('test_attempts')->where('student_user_id', $studentId)->count();
-        $practiceCount = DB::table('practice_submissions')->where('student_user_id', $studentId)->count();
+        $attemptCount = DB::table('test_attempts')
+            ->where('student_user_id', $studentId)
+            ->count();
+
+        $practiceCount = DB::table('practice_submissions')
+            ->where('student_user_id', $studentId)
+            ->count();
 
         if ($attemptCount > 0 || $practiceCount > 0) {
             return response()->json([
@@ -74,9 +78,9 @@ class StudentController extends Controller
             ], 422);
         }
 
-        DB::transaction(function () use ($user) {
-            DB::table('siswa_profiles')->where('user_id', $user->id)->delete();
-            $user->delete();
+        DB::transaction(function () use ($student) {
+            DB::table('siswa_profiles')->where('user_id', $student->id)->delete();
+            $student->delete();
         });
 
         return response()->json([

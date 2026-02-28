@@ -16,7 +16,7 @@ class StudentUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-        $userId = $this->route('student')?->id ?? $this->route('user')?->id;
+        $userId = $this->route('student')?->id;
 
         return [
             'kelas_id' => ['required', 'integer', 'exists:kelas,id'],
@@ -52,6 +52,7 @@ class StudentUpdateRequest extends FormRequest
 
             'full_name.required' => 'Nama lengkap wajib diisi.',
             'nisn.unique' => 'NISN sudah digunakan.',
+            'gender.in' => 'Gender harus laki-laki/perempuan.',
         ];
     }
 

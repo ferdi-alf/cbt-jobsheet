@@ -1,8 +1,8 @@
-import { useProgress } from "@/Components/progress/ProgressProvider";
-import { useQueryClient } from "@tanstack/react-query";
-import { StudentUpdatePayload } from "../types";
-import { deleteStudent, updateStudent } from "../api/students.api";
 import { toast } from "sonner";
+import { useProgress } from "@/Components/progress/ProgressProvider";
+import { deleteStudent, updateStudent } from "../api/students.api";
+import type { StudentUpdatePayload } from "../types";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function useStudentMutations(onDone?: () => void) {
     const { start, finish, fail } = useProgress();

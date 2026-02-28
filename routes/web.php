@@ -14,6 +14,7 @@ use App\Http\Controllers\Admin\MapelGuruController;
 use App\Http\Controllers\Admin\StudentBulkController;
 use App\Http\Controllers\Admin\StudentController as AdminStudentController;
 use App\Http\Controllers\Petugas\StudentController as PetugasStudentController;
+use App\Http\Controllers\Petugas\StudentPracticeController;
 
 Route::get('/', function () {
     return Auth::check()
@@ -66,6 +67,8 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
      Route::prefix('api')->group(function () {
         Route::get('/students', [PetugasStudentController::class, 'index']);
         Route::get('/students/{user}', [PetugasStudentController::class, 'show']);
+        Route::get('/students/{student}/practices', [StudentPracticeController::class, 'index']);
+        Route::get('/practice-submissions/{submission}/items', [StudentPracticeController::class, 'items']);
     });
 
 

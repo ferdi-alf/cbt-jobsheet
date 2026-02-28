@@ -1,11 +1,11 @@
-import BottomDrawerShell from "@/Components/drawers/shells/BottomDrawerShell";
-import { useQuery } from "@tanstack/react-query";
 import { ReactNode } from "react";
-import { getStudentsDetail } from "../api/students.api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import BottomDrawerShell from "@/Components/drawers/shells/BottomDrawerShell";
+import { getStudentDetail } from "../api/students.api";
 import UserAvatar from "@/Components/common/UserAvatar";
-import StudentPosttestLineChart from "./chart/StudentPosttestLineChart";
+import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Badge } from "@/Components/ui/badge";
+import StudentPosttestLineChart from "./chart/StudentPosttestLineChart";
 import {
     Table,
     TableBody,
@@ -14,6 +14,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/Components/ui/table";
+import StudentPracticesTable from "./StudentPracticesTable";
 
 export default function StudentViewDrawer({
     studentId,
@@ -34,12 +35,12 @@ export default function StudentViewDrawer({
 function StudentDrawerContent({ studentId }: { studentId: number }) {
     const q = useQuery({
         queryKey: ["student-detail", studentId],
-        queryFn: () => getStudentsDetail(studentId),
+        queryFn: () => getStudentDetail(studentId),
         staleTime: 60_000,
     });
 
     if (q.isLoading)
-        return <div className="text-sm text-muted-foreground">Loading....</div>;
+        return <div className="text-sm text-muted-foreground">Loading...</div>;
     if (q.error)
         return (
             <div className="text-sm text-destructive">
@@ -64,13 +65,11 @@ function StudentDrawerContent({ studentId }: { studentId: number }) {
                             {s.full_name}
                         </div>
                         <div className="text-sm text-muted-foreground truncate">
-                            {s.email} - {s.kelas ?? "-"}
+                            {s.email} • {s.kelas ?? "-"}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1">
-                            Username:{" "}
-                            <b>
-                                {s.username ?? "-"} - NISN <b>{s.nisn}</b>
-                            </b>
+                            Username: <b>{s.username ?? "-"}</b> • NISN:{" "}
+                            <b>{s.nisn}</b>
                         </div>
                     </div>
                 </CardContent>
@@ -101,14 +100,15 @@ function StudentDrawerContent({ studentId }: { studentId: number }) {
 
             <div className="grid grid-cols-1 md:grid-cols-10 gap-4">
                 <div className="md:col-span-7">
-                    <StudentPosttestLineChart items={d.chart.last_posttest} />
+                    <StudentPosttestLineChart
+                        items={d.chart.last_posttests ?? []}
+                    />
                 </div>
                 <div className="md:col-span-3">
                     <Card className="h-full">
                         <CardHeader className="pb-2">
-                            <CardTitle className="text-sm">Infoe</CardTitle>
+                            <CardTitle className="text-sm">Info</CardTitle>
                         </CardHeader>
-
                         <CardContent className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                                 <span>Gender</span>
@@ -133,8 +133,8 @@ function StudentDrawerContent({ studentId }: { studentId: number }) {
                         Riwayat Test (Pretest/Posttest)
                     </CardTitle>
                 </CardHeader>
-                <CardHeader>
-                    <div className="rounded-md">
+                <CardContent>
+                    <div className="rounded-md border">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -156,7 +156,7 @@ function StudentDrawerContent({ studentId }: { studentId: number }) {
                                             colSpan={5}
                                             className="text-center text-sm text-muted-foreground"
                                         >
-                                            Belum ada attempt
+                                            Belum ada attempt.
                                         </TableCell>
                                     </TableRow>
                                 ) : (
@@ -177,7 +177,7 @@ function StudentDrawerContent({ studentId }: { studentId: number }) {
                                                 </Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                {a.finished_at}
+                                                {a.finished_at ?? "-"}
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -185,7 +185,7 @@ function StudentDrawerContent({ studentId }: { studentId: number }) {
                             </TableBody>
                         </Table>
                     </div>
-                </CardHeader>
+                </CardContent>
             </Card>
 
             <Card>
@@ -193,57 +193,7 @@ function StudentDrawerContent({ studentId }: { studentId: number }) {
                     <CardTitle className="text-sm">Riwayat Praktek</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Materi</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-center">
-                                        Late
-                                    </TableHead>
-                                    <TableHead className="text-center">
-                                        Score
-                                    </TableHead>
-                                    <TableHead className="text-right">
-                                        Submitted
-                                    </TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {d.tables.prectices.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell
-                                            colSpan={5}
-                                            className="text-center text-sm text-muted-foreground"
-                                        >
-                                            Belum ada submission
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    d.tables.prectices.map((p) => (
-                                        <TableRow key={p.id}>
-                                            <TableCell>
-                                                {p.materi_title}
-                                            </TableCell>
-                                            <TableCell>
-                                                {p.status ?? "-"}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                {p.is_late ? "Ya" : "Tidak"}
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                {p.total_score ?? 0}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {p.submitted_at ?? "-"}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
+                    <StudentPracticesTable studentId={studentId} />
                 </CardContent>
             </Card>
         </div>

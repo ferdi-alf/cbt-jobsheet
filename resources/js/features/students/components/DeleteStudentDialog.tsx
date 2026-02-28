@@ -1,5 +1,3 @@
-import { useState } from "react";
-import { useStudentMutations } from "../hooks/useStudentMutations";
 import {
     Dialog,
     DialogContent,
@@ -9,8 +7,10 @@ import {
     DialogTrigger,
 } from "@/Components/ui/dialog";
 import { Button } from "@/Components/ui/button";
+import { useState } from "react";
+import { useStudentMutations } from "../hooks/useStudentMutations";
 
-export default function DeletedStudentDialog({
+export default function DeleteStudentDialog({
     studentId,
     studentName,
     trigger,
@@ -27,7 +27,7 @@ export default function DeletedStudentDialog({
     };
 
     return (
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{trigger}</DialogTrigger>
             <DialogContent>
                 <DialogHeader>

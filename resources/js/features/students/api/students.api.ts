@@ -1,13 +1,14 @@
 import { api } from "@/lib/http";
-import { StudentDetail, StudentRow, StudentUpdatePayload } from "../types";
+import type { StudentDetail, StudentRow, StudentUpdatePayload } from "../types";
 
-export async function getStudentsDetail(id: number) {
-    return api.get<StudentDetail>(`/api/stundents/${id}`);
+export async function getStudentDetail(id: number) {
+    return api.get<StudentDetail>(`/api/students/${id}`);
 }
 
 export async function updateStudent(id: number, payload: StudentUpdatePayload) {
     return api.put<boolean>(`/api/students/${id}`, payload);
 }
+
 export async function deleteStudent(id: number) {
     return api.del<boolean>(`/api/students/${id}`);
 }
