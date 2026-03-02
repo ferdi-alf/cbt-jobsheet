@@ -3,17 +3,16 @@ export type ApiResponse<T> = {
     data: T;
     meta?: any;
     error?: string | null;
-
-    // untuk kasus validation dari request kita
     errors?: Record<string, string[]>;
 };
 
-function getCsrfToken() {
+function getXsrfTokenFromCookie(): string {
     if (typeof document === "undefined") return "";
-    const el = document.querySelector(
-        'meta[name="csrf-token"]',
-    ) as HTMLMetaElement | null;
-    return el?.content ?? "";
+
+    const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+    if (!match) return "";
+
+    return decodeURIComponent(match[1]);
 }
 
 function getApiBaseUrl() {
@@ -36,7 +35,6 @@ export class ApiError extends Error {
     status: number;
     bodyPreview?: string;
 
-    // ✅ ini yang penting: bawa payload json (termasuk errors)
     payload?: any;
 
     constructor(
@@ -57,13 +55,19 @@ export async function apiRequest<T>(
 ): Promise<T> {
     const url = buildUrl(path);
 
+    const isFormData =
+        typeof FormData !== "undefined" && init.body instanceof FormData;
+
     const res = await fetch(url, {
         ...init,
         credentials: "include",
         headers: {
             Accept: "application/json",
             "X-Requested-With": "XMLHttpRequest",
-            "X-CSRF-TOKEN": getCsrfToken(),
+            "X-XSRF-TOKEN": getXsrfTokenFromCookie(),
+            ...(isFormData ? {} : (init.headers ?? {})),
+            ...(isFormData ? {} : (init.headers ?? {})),
+            ...(isFormData ? {} : {}),
             ...(init.headers ?? {}),
         },
     });
@@ -94,7 +98,9 @@ export async function apiRequest<T>(
         throw new ApiError(
             json?.error || `Request failed (${res.status})`,
             res.status,
-            { payload: json },
+            {
+                payload: json,
+            },
         );
     }
 
@@ -103,17 +109,25 @@ export async function apiRequest<T>(
 
 export const api = {
     get: <T>(path: string) => apiRequest<T>(path, { method: "GET" }),
+
     post: <T>(path: string, body?: any) =>
         apiRequest<T>(path, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: body !== undefined ? JSON.stringify(body) : undefined,
         }),
+
     put: <T>(path: string, body?: any) =>
         apiRequest<T>(path, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: body !== undefined ? JSON.stringify(body) : undefined,
         }),
+
     del: <T>(path: string) => apiRequest<T>(path, { method: "DELETE" }),
+
+    postForm: <T>(path: string, form: FormData) =>
+        apiRequest<T>(path, { method: "POST", body: form }),
+    putForm: <T>(path: string, form: FormData) =>
+        apiRequest<T>(path, { method: "POST", body: form }),
 };

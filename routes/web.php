@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\MapelController;
 use App\Http\Controllers\Admin\MapelGuruController;
 use App\Http\Controllers\Admin\StudentBulkController;
 use App\Http\Controllers\Admin\StudentController as AdminStudentController;
+use App\Http\Controllers\Petugas\MateriController;
 use App\Http\Controllers\Petugas\StudentController as PetugasStudentController;
 use App\Http\Controllers\Petugas\StudentPracticeController;
 
@@ -58,13 +59,12 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
             ->only(['update', 'destroy']);
     });
 
-    
+
 
     Route::get('/scores', fn () => inertia('Admin/Scores/Index'))->name('scores.index');
 });
 
 Route::middleware(['auth', 'role:guru'])->group(function () {
-    Route::get('/api/guru/me', [\App\Http\Controllers\Petugas\GuruMeController::class, 'show']);
     Route::get('/guru/dashboard', fn () => inertia('Guru/Dashboard'))->name('guru.dashboard');
     Route::get('/guru/students', fn () => inertia('Guru/Students/Index'))->name('guru.students.index');
 });
@@ -79,6 +79,19 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
 
 
     Route::get('/materi', fn () => inertia('Materi/Index'))->name('materi.index');
+     Route::prefix('api')->group(function () {
+        Route::get('/materis', [MateriController::class, 'index']);
+        Route::get('/materis/{materi}', [MateriController::class, 'show']);
+        Route::get('/materis/{materi}/tests', [MateriController::class, 'tests']);
+        Route::get('/materis/{materi}/practice-checklists', [MateriController::class, 'practiceChecklists']);
+        Route::get('/practice-rules/{rule}/checklists', [MateriController::class, 'ruleChecklists']);
+        Route::get('/materis/{materi}/download', [MateriController::class, 'download'])
+            ->name('api.materis.download');
+        Route::post('/materis', [MateriController::class, 'store']);
+        Route::post('/materis/{materi}', [MateriController::class, 'update']); 
+        Route::delete('/materis/{materi}', [MateriController::class, 'destroy']);
+    });
+    
     Route::get('/practice-rules', fn () => inertia('Practice/Rules/Index'))->name('practice.rules.index');
     Route::get('/practice-results', fn () => inertia('Practice/Results/Index'))->name('practice.results.index');
     Route::get('/tests', fn () => inertia('Tests/Index'))->name('tests.index');
