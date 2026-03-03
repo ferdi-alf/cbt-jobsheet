@@ -65,11 +65,6 @@ class User extends Authenticatable
         return $this->hasMany(Materi::class, 'created_by');
     }
 
-    public function teachingMateris(): HasMany
-    {
-        return $this->hasMany(Materi::class, 'teacher_user_id');
-    }
-
     public function testAttempts(): HasMany
     {
         return $this->hasMany(TestAttempt::class, 'user_id');
@@ -77,7 +72,7 @@ class User extends Authenticatable
 
     public function practiceSubmissions(): HasMany
     {
-        return $this->hasMany(PracticeSubmission::class, 'user_id');
+        return $this->hasMany(PracticeSubmission::class, 'student_user_id');
     }
 
     public function isAdmin(): bool {return $this->role === 'admin';}

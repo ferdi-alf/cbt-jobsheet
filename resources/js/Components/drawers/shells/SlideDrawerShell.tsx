@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { X } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -22,34 +22,36 @@ export default function SlideDrawerShell({
                 open ? "pointer-events-auto" : "pointer-events-none",
             )}
         >
-            {/* overlay */}
             <div
                 onClick={onClose}
                 className={cn(
-                    "absolute inset-0 bg-black/40 transition-opacity",
+                    "absolute inset-0 bg-black/40 transition-opacity duration-200",
                     open ? "opacity-100" : "opacity-0",
                 )}
             />
 
-            {/* panel */}
             <div
                 className={cn(
-                    "absolute right-0 top-0 h-full w-full max-w-xl bg-background border-l shadow-xl transition-transform",
+                    "absolute inset-0 bg-background shadow-xl transition-transform duration-200 will-change-transform",
                     open ? "translate-x-0" : "translate-x-full",
                 )}
             >
-                <div className="flex items-center justify-between border-b px-4 py-3">
-                    <div className="font-semibold">{title}</div>
+                <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-background px-4 py-3">
                     <button
                         onClick={onClose}
                         className="inline-flex h-9 w-9 items-center justify-center rounded-md hover:bg-muted"
-                        aria-label="Close"
+                        aria-label="Back"
+                        title="Tutup"
                     >
-                        <X className="h-4 w-4" />
+                        <ChevronLeft className="h-5 w-5" />
                     </button>
+                    <div className="font-semibold truncate">{title}</div>
                 </div>
 
-                <div className="p-4">{children}</div>
+                {/* body scroll */}
+                <div className="h-[calc(100vh-56px)] overflow-auto p-4">
+                    {children}
+                </div>
             </div>
         </div>
     );

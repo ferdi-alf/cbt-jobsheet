@@ -128,7 +128,7 @@ export default function MateriFormDialog({
 
             <DialogContent
                 aria-describedby={undefined}
-                className="sm:max-w-[720px] w-11/12"
+                className="sm:max-w-[720px] w-11/12 h-[90%]"
             >
                 <DialogHeader>
                     <DialogTitle>
@@ -141,7 +141,7 @@ export default function MateriFormDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-4">
+                <div className="grid gap-4 overflow-auto">
                     <div className="grid gap-2">
                         <Label>Judul</Label>
                         <Input
@@ -153,7 +153,6 @@ export default function MateriFormDialog({
                     <div className="grid gap-2">
                         <Label>Deskripti Praktik</Label>
                         <Textarea
-                            className="h-4"
                             value={form.praktik_text}
                             onChange={(e) =>
                                 set("praktik_text", e.target.value)

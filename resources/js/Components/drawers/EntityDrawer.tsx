@@ -10,9 +10,10 @@ type EntityDrawerProps<TData> = {
     title: string;
     trigger: ReactNode;
     id?: string | number;
-
     fetcher?: (id: string | number) => Promise<TData>;
     cacheKey?: (id: string | number) => unknown[];
+    open?: boolean;
+    onOpenChange?: (v: boolean) => void;
 
     render: (args: {
         data?: TData;
@@ -29,12 +30,19 @@ export default function EntityDrawer<TData>({
     id,
     fetcher,
     cacheKey,
+    open,
+    onOpenChange,
     render,
 }: EntityDrawerProps<TData>) {
-    const [open, setOpen] = useState(false);
+    const [internalOpen, setInternalOpen] = useState(false);
+
+    const isControlled = typeof open === "boolean" && !!onOpenChange;
+    const actualOpen = isControlled ? open : internalOpen;
+    const setOpen = isControlled ? onOpenChange! : setInternalOpen;
+
     const close = () => setOpen(false);
 
-    const enabled = open && !!id && !!fetcher;
+    const enabled = actualOpen && !!id && !!fetcher;
 
     const queryKey = useMemo(() => {
         if (!id) return ["entity-drawer", title, "no-id"];
@@ -67,7 +75,11 @@ export default function EntityDrawer<TData>({
         return (
             <>
                 <span onClick={() => setOpen(true)}>{trigger}</span>
-                <SlideDrawerShell open={open} onClose={close} title={title}>
+                <SlideDrawerShell
+                    open={actualOpen}
+                    onClose={close}
+                    title={title}
+                >
                     {content}
                 </SlideDrawerShell>
             </>
@@ -76,7 +88,7 @@ export default function EntityDrawer<TData>({
 
     return (
         <BottomDrawerShell
-            open={open}
+            open={actualOpen}
             onOpenChange={setOpen}
             title={title}
             trigger={trigger}
