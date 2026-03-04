@@ -58,18 +58,23 @@ export async function apiRequest<T>(
     const isFormData =
         typeof FormData !== "undefined" && init.body instanceof FormData;
 
+    const headers: Record<string, string> = {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-XSRF-TOKEN": getXsrfTokenFromCookie(),
+    };
+
+    if (!isFormData) {
+        Object.assign(headers, init.headers ?? {});
+    } else {
+        Object.assign(headers, init.headers ?? {});
+        delete (headers as any)["Content-Type"];
+    }
+
     const res = await fetch(url, {
         ...init,
         credentials: "include",
-        headers: {
-            Accept: "application/json",
-            "X-Requested-With": "XMLHttpRequest",
-            "X-XSRF-TOKEN": getXsrfTokenFromCookie(),
-            ...(isFormData ? {} : (init.headers ?? {})),
-            ...(isFormData ? {} : (init.headers ?? {})),
-            ...(isFormData ? {} : {}),
-            ...(init.headers ?? {}),
-        },
+        headers,
     });
 
     const contentType = res.headers.get("content-type") || "";
@@ -92,9 +97,15 @@ export async function apiRequest<T>(
         );
     }
 
-    const json = (await res.json()) as ApiResponse<T>;
+    const json = (await res.json()) as any;
+    if (!res.ok) {
+        const msg =
+            json?.error || json?.message || `Request failed (${res.status})`;
 
-    if (!res.ok || !json.success) {
+        throw new ApiError(msg, res.status, { payload: json });
+    }
+
+    if (typeof json?.success === "boolean" && !json.success) {
         throw new ApiError(
             json?.error || `Request failed (${res.status})`,
             res.status,
@@ -104,7 +115,7 @@ export async function apiRequest<T>(
         );
     }
 
-    return json.data;
+    return (typeof json?.success === "boolean" ? json.data : json) as T;
 }
 
 export const api = {
@@ -129,5 +140,5 @@ export const api = {
     postForm: <T>(path: string, form: FormData) =>
         apiRequest<T>(path, { method: "POST", body: form }),
     putForm: <T>(path: string, form: FormData) =>
-        apiRequest<T>(path, { method: "POST", body: form }),
+        apiRequest<T>(path, { method: "PUT", body: form }),
 };

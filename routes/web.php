@@ -17,6 +17,7 @@ use App\Http\Controllers\Petugas\MateriController;
 use App\Http\Controllers\Petugas\PracticeRuleController;
 use App\Http\Controllers\Petugas\StudentController as PetugasStudentController;
 use App\Http\Controllers\Petugas\StudentPracticeController;
+use App\Http\Controllers\Petugas\TestController;
 
 Route::get('/', function () {
     return Auth::check()
@@ -92,8 +93,6 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
         Route::post('/materis/{materi}', [MateriController::class, 'update']); 
         Route::delete('/materis/{materi}', [MateriController::class, 'destroy']);
     });
-
-
     
     Route::get('/practice-rules', fn () => inertia('Practice/Rules/Index'))->name('practice.rules.index');
     Route::prefix('api')->group(function () {
@@ -103,13 +102,18 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
         Route::get('practice-rules/{practice_rule}/checklists', [PracticeRuleController::class, 'checklists']);
         Route::get('practice-rules/{practice_rule}/stats', [PracticeRuleController::class, 'stats']);
         Route::get('practice-rules/{practice_rule}/submissions', [PracticeRuleController::class, 'submissions']);
-
         Route::get('lookups/materis', [PracticeRuleController::class, 'lookupMateris']);
     });
 
-
     Route::get('/practice-results', fn () => inertia('Practice/Results/Index'))->name('practice.results.index');
     Route::get('/tests', fn () => inertia('Tests/Index'))->name('tests.index');
+    Route::prefix('api')->group(function () {
+       Route::apiResource('tests', TestController::class)
+           ->except(['create', 'edit']);
+       Route::get('tests/{test}/overview', [TestController::class, 'overview']);
+       Route::get('tests/{test}/attempts', [TestController::class, 'attempts']);
+       Route::get('tests/{test}/questions', [TestController::class, 'questions']);
+   });
 });
 
 Route::middleware(['auth', 'role:siswa'])->group(function () {

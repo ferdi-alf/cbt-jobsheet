@@ -142,8 +142,8 @@ export default function MateriIndex() {
                     expandable={{
                         condition: (row) => !!row.praktik_text?.trim(),
                         render: (_sub, row) => (
-                            <div className="flex justify-center items-start">
-                                <div className="rounded-md border p-3 w-3/4 bg-background">
+                            <div>
+                                <div className="rounded-md border p-3 bg-background">
                                     <div className="text-sm font-semibold">
                                         Deskripsi Praktik
                                     </div>

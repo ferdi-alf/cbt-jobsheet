@@ -48,7 +48,6 @@ export default function SlideDrawerShell({
                     <div className="font-semibold truncate">{title}</div>
                 </div>
 
-                {/* body scroll */}
                 <div className="h-[calc(100vh-56px)] overflow-auto p-4">
                     {children}
                 </div>

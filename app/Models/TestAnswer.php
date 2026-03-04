@@ -14,7 +14,8 @@ class TestAnswer extends Model
         'is_correct',
     ];
 
-    protected function attempt(): BelongsTo
+
+    public function attempt(): BelongsTo
     {
         return $this->belongsTo(TestAttempt::class, 'attempt_id');
     }
