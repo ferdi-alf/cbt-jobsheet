@@ -5,6 +5,9 @@ export interface User {
     email_verified_at?: string;
     role?: "admin" | "guru" | "siswa" | null;
     avatar_path?: string | null;
+    profile?: {
+        full_name?: string | null;
+    };
 }
 
 export type PageProps<

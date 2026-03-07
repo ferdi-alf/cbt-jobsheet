@@ -67,7 +67,7 @@ class User extends Authenticatable
 
     public function testAttempts(): HasMany
     {
-        return $this->hasMany(TestAttempt::class, 'user_id');
+        return $this->hasMany(TestAttempt::class, 'student_user_id');
     }
 
     public function practiceSubmissions(): HasMany

@@ -18,6 +18,9 @@ use App\Http\Controllers\Petugas\PracticeRuleController;
 use App\Http\Controllers\Petugas\StudentController as PetugasStudentController;
 use App\Http\Controllers\Petugas\StudentPracticeController;
 use App\Http\Controllers\Petugas\TestController;
+use App\Http\Controllers\Siswa\PretestController as SiswaPretestController;
+use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
+use App\Http\Controllers\Siswa\TestSessionController as SiswaTestSessionController;
 
 Route::get('/', function () {
     return Auth::check()
@@ -98,7 +101,6 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
     Route::prefix('api')->group(function () {
         Route::apiResource('practice-rules', PracticeRuleController::class)
             ->except(['create', 'edit']);
-
         Route::get('practice-rules/{practice_rule}/checklists', [PracticeRuleController::class, 'checklists']);
         Route::get('practice-rules/{practice_rule}/stats', [PracticeRuleController::class, 'stats']);
         Route::get('practice-rules/{practice_rule}/submissions', [PracticeRuleController::class, 'submissions']);
@@ -121,6 +123,34 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
     Route::get('/pretest', fn () => inertia('Siswa/Tests/Pretest'))->name('siswa.pretest');
     Route::get('/posttest', fn () => inertia('Siswa/Tests/Posttest'))->name('siswa.posttest');
     Route::get('/upload-practice', fn () => inertia('Siswa/Practice/Upload'))->name('siswa.practice.upload');
+
+    Route::get('/tes/{publicKey}', fn (string $publicKey) => inertia('Siswa/Tests/Take', [
+        'publicKey' => $publicKey,
+    ]))->name('siswa.tests.take');
+
+    Route::get('/tes/{publicKey}/selesai', fn (string $publicKey) => inertia('Siswa/Tests/Finished', [
+        'publicKey' => $publicKey,
+    ]))->name('siswa.tests.finished');
+
+    Route::prefix('api')->group(function () {
+        Route::get('/pretests', [SiswaPretestController::class, 'index'])
+            ->name('api.siswa.pretests.index');
+
+        Route::get('/materis', [SiswaMateriController::class, 'index'])
+            ->name('api.siswa.materis.index');
+
+        Route::get('/materis/{materi}/download', [SiswaMateriController::class, 'download'])
+            ->name('api.siswa.materis.download');
+
+        Route::post('/tests/{publicKey}/start', [SiswaTestSessionController::class, 'start'])
+            ->name('api.siswa.tests.start');
+        Route::post('/tests/{publicKey}/answers', [SiswaTestSessionController::class, 'saveAnswer'])
+            ->name('api.siswa.tests.answers');
+        Route::post('/tests/{publicKey}/submit', [SiswaTestSessionController::class, 'submit'])
+            ->name('api.siswa.tests.submit');
+        Route::get('/tests/{publicKey}/result', [SiswaTestSessionController::class, 'result'])
+            ->name('api.siswa.tests.result');
+    });
 });
 
 require __DIR__ . '/auth.php';

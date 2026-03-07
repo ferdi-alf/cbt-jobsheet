@@ -1,26 +1,27 @@
 import { router, usePage } from "@inertiajs/react";
 import {
-    LayoutDashboard,
-    Users,
     BookOpen,
-    ClipboardList,
     ClipboardCheck,
-    FileQuestion,
+    ClipboardList,
+    GraduationCap,
+    LayoutDashboard,
+    Upload,
     UserCircle2,
 } from "lucide-react";
-
-import SidebarItem from "./SidebarItem";
 import SidebarSection from "./SidebarSection";
+import SidebarItem from "./SidebarItem";
 import { Button } from "@/Components/ui/button";
-import { GraduationCap } from "lucide-react";
 
-export default function GuruSidebar({
+export default function SiswaSidebar({
     onNavigate,
 }: {
     onNavigate?: () => void;
 }) {
-    const page = usePage();
-    const user = (page.props as any).auth?.user;
+    const page = usePage<any>();
+    const user = page.props?.auth?.user;
+
+    const displayName =
+        user?.profile?.full_name || user?.name || user?.email || "Siswa";
 
     return (
         <aside className="md:flex md:w-72 md:flex-col md:border-r md:bg-background">
@@ -32,77 +33,69 @@ export default function GuruSidebar({
 
                     <div className="min-w-0">
                         <div className="truncate text-sm font-semibold">
-                            {user?.profile?.full_name ?? user?.email ?? "Guru"}
+                            {displayName}
                         </div>
                         <div className="text-xs text-muted-foreground capitalize">
-                            {user?.role ?? "guru"}
+                            {user?.role ?? "siswa"}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="h-[490px] overflow-auto">
+            <div className="sm:h-[490px] h-[450px] overflow-auto">
                 <nav className="flex-1 h-full py-2">
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}
-                            href="/guru/dashboard"
+                            href="/dashboard"
                             icon={<LayoutDashboard className="h-4 w-4" />}
-                            activePathStartsWith="/guru/dashboard"
+                            activePathStartsWith="/siswa/dashboard"
                         >
                             Dashboard
                         </SidebarItem>
-
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/guru/students"
-                            icon={<Users className="h-4 w-4" />}
-                            activePathStartsWith="/guru/students"
-                        >
-                            Data Siswa
-                        </SidebarItem>
                     </div>
 
-                    <div className="border-b my-2" />
-
-                    <SidebarSection>Materi</SidebarSection>
+                    <SidebarSection>Belajar</SidebarSection>
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}
-                            href="/materi"
+                            href="/pretest"
+                            icon={<ClipboardList className="h-4 w-4" />}
+                            activePathStartsWith="/pretest"
+                        >
+                            Pretest
+                        </SidebarItem>
+
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/my-materi"
                             icon={<BookOpen className="h-4 w-4" />}
-                            activePathStartsWith="/materi"
+                            activePathStartsWith="/my-materi"
                         >
                             Materi
                         </SidebarItem>
+
                         <SidebarItem
                             onClick={onNavigate}
-                            href="/practice-rules"
-                            icon={<ClipboardList className="h-4 w-4" />}
-                            activePathStartsWith="/practice-rules"
-                        >
-                            Rules Praktek
-                        </SidebarItem>
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/practice-results"
+                            href="/posttest"
                             icon={<ClipboardCheck className="h-4 w-4" />}
-                            activePathStartsWith="/practice-results"
+                            activePathStartsWith="/posttest"
                         >
-                            Hasil Praktek
+                            Posttest
                         </SidebarItem>
                     </div>
 
                     <div className="border-b my-2" />
 
+                    <SidebarSection>Praktik</SidebarSection>
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}
-                            href="/tests"
-                            icon={<FileQuestion className="h-4 w-4" />}
-                            activePathStartsWith="/tests"
+                            href="/upload-practice"
+                            icon={<Upload className="h-4 w-4" />}
+                            activePathStartsWith="/upload-practice"
                         >
-                            Test
+                            Upload Praktik
                         </SidebarItem>
                     </div>
                 </nav>
@@ -113,6 +106,7 @@ export default function GuruSidebar({
                     onClick={onNavigate}
                     href="/profile"
                     icon={<UserCircle2 className="h-4 w-4" />}
+                    activePathStartsWith="/profile"
                 >
                     Profile
                 </SidebarItem>
