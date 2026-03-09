@@ -7,49 +7,50 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that is loaded on the first page visit.
-     *
-     * @var string
-     */
     protected $rootView = 'app';
 
-    /**
-     * Determine the current asset version.
-     */
     public function version(Request $request): ?string
     {
         return parent::version($request);
     }
 
-    /**
-     * Define the props that are shared by default.
-     *
-     * @return array<string, mixed>
-     */
     public function share(Request $request): array
     {
-        $user = $request->user();
-        
-        if ($user) {
-            if ($user->role === 'guru') {
-                $user->load('guruProfile');
-                $user->profile = [
-                    'full_name' => $user->guruProfile?->full_name,
-                ];
-            } elseif ($user->role === 'siswa') {
-                $user->load('siswaProfile');
-                $user->profile = [
-                    'full_name' => $user->siswaProfile?->full_name,
-                ];
+        $authUser = $request->user();
+        $sharedUser = null;
+
+        if ($authUser) {
+            if ($authUser->role === 'guru') {
+                $authUser->loadMissing('guruProfile:user_id,full_name');
             }
+
+            if ($authUser->role === 'siswa') {
+                $authUser->loadMissing('siswaProfile:user_id,full_name');
+            }
+
+            $sharedUser = [
+                'id' => $authUser->id,
+                'name' => $authUser->name,
+                'email' => $authUser->email,
+                'email_verified_at' => optional($authUser->email_verified_at)->toDateTimeString(),
+                'role' => $authUser->role,
+                'avatar_path' => $authUser->avatar_path,
+                'profile' => [
+                    'full_name' => match ($authUser->role) {
+                        'guru' => $authUser->guruProfile?->full_name,
+                        'siswa' => $authUser->siswaProfile?->full_name,
+                        default => null,
+                    },
+                ],
+            ];
         }
 
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $user,
+                'user' => $sharedUser,
             ],
+            'reload' => fn () => $request->session()->pull('reload', false),
         ];
     }
 }

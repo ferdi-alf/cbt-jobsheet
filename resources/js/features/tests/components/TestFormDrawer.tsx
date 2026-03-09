@@ -146,22 +146,19 @@ export default function TestFormDrawer({
             req(`${base}.option_c`, !!v(q.option_c), "Opsi wajib diisi");
             req(`${base}.option_d`, !!v(q.option_d), "Opsi wajib diisi");
             req(`${base}.option_e`, !!v(q.option_e), "Opsi wajib diisi");
-            req(
-                `${base}.correct_option`,
-                !!v(q.correct_option),
-                "Pilih jawaban benar",
-            );
         });
 
         if (Object.keys(errs).length) {
             setFormErrors(errs);
             bulk.setErrors(errs);
-            bulk.scrollToFirstError();
+            bulk.scrollToFirstError(errs);
+
             toast.error("Masih ada input yang kosong", {
                 description: "Periksa kembali field yang ditandai merah.",
             });
             return false;
         }
+
         return true;
     };
 
@@ -199,15 +196,10 @@ export default function TestFormDrawer({
             if (e?.status === 422) {
                 const p = e?.payload ?? {};
                 const errs = (p?.errors ?? {}) as Record<string, string[]>;
-                setFormErrors(errs);
 
-                const hasBulkErr = Object.keys(errs).some((k) =>
-                    k.startsWith("questions."),
-                );
-                if (hasBulkErr) {
-                    bulk.setErrors(errs);
-                    bulk.scrollToFirstError();
-                }
+                setFormErrors(errs);
+                bulk.setErrors(errs);
+                bulk.scrollToFirstError(errs);
 
                 toast.error("Data tidak valid", {
                     description:
@@ -216,7 +208,6 @@ export default function TestFormDrawer({
                 });
                 return;
             }
-
             toast.error("Gagal menyimpan test", {
                 description: e?.message ?? "Terjadi kesalahan",
             });

@@ -125,7 +125,7 @@ export default function PracticeRuleFormDrawer({
             const payloadJson = err?.payload;
             if (payloadJson?.errors) {
                 bulk.setErrors(payloadJson.errors);
-                bulk.scrollToFirstError();
+                bulk.scrollToFirstError(payloadJson.errors);
             }
             throw e;
         }

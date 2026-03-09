@@ -7,9 +7,12 @@ export type TestRow = {
     duration_minutes: number;
     is_score_visible: boolean;
 
-    materi?: { id: number; title: string } | null;
-    kelas?: string | null;
-    mapel?: string | null;
+    materi?: {
+        id: number;
+        title: string;
+        kelas?: string | null;
+        mapel?: string | null;
+    } | null;
 
     created_by?: {
         id: number;
@@ -20,11 +23,11 @@ export type TestRow = {
     } | null;
 
     created_at?: string | null;
-
     total_questions?: number;
     start_at?: string | null;
     end_at?: string | null;
 };
+
 export type TestQuestionRow = {
     id: number;
     order: number;

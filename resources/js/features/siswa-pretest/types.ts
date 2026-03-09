@@ -1,4 +1,4 @@
-export type PretestStatus = "not_started" | "in_progress" | "finished";
+export type PretestStatus = "not_started" | "in_progress" | "submitted";
 export type PretestAvailabilityStatus =
     | "upcoming"
     | "available"

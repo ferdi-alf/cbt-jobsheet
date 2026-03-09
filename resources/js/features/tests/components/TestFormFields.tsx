@@ -70,7 +70,14 @@ export default function TestFormFields({
                     <SelectContent>
                         {(materis.data ?? []).map((m) => (
                             <SelectItem key={m.id} value={String(m.id)}>
-                                {m.title} ({m.kelas ?? "-"} / {m.mapel ?? "-"})
+                                <div className="min-w-0 py-1 text-start">
+                                    <div className="truncate font-medium">
+                                        {m.title}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {m.kelas ?? "-"} / {m.mapel ?? "-"}
+                                    </div>
+                                </div>
                             </SelectItem>
                         ))}
                     </SelectContent>

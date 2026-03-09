@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchSiswaMateris } from "../api/materis.api";
-import type { SiswaMateriItem } from "../types";
+
+import type { SiswaMateriListItem } from "../types";
+import { getSiswaMateris } from "../api/siswaMateris.api";
 
 export function useSiswaMateris() {
-    return useQuery<SiswaMateriItem[], Error>({
+    return useQuery<SiswaMateriListItem[], Error>({
         queryKey: ["siswa-materis"],
-        queryFn: fetchSiswaMateris,
+        queryFn: getSiswaMateris,
         staleTime: 60_000,
     });
 }

@@ -8,6 +8,7 @@ use App\Http\Requests\Siswa\SubmitTestRequest;
 use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\TestQuestion;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class TestSessionController extends Controller
@@ -48,14 +49,14 @@ class TestSessionController extends Controller
                 'test_id' => $test->id,
                 'student_user_id' => $user->id,
                 'started_at' => $now,
-                'status' => 'on_progress',
+                'status' => 'in_progress',
                 'duration_seconds' => 0,
             ]);
         }
 
         if (!$attempt->started_at) {
             $attempt->started_at = $now;
-            $attempt->status = 'on_progress';
+            $attempt->status = 'in_progress';
             $attempt->save();
         }
 
@@ -135,7 +136,7 @@ class TestSessionController extends Controller
             ],
             [
                 'started_at' => now(),
-                'status' => 'on_progress',
+                'status' => 'in_progress',
                 'duration_seconds' => 0,
             ]
         );
@@ -337,11 +338,22 @@ class TestSessionController extends Controller
         $user = $request->user();
         abort_if(!$user || $user->role !== 'siswa', 403);
 
-        $kelasId = $user->siswaProfile?->kelas_id;
+        $kelasId = $this->resolveSiswaKelasId($user);
+
         abort_if(!$kelasId, 403);
+
+        $test->loadMissing('materi:id,kelas_id');
+
+
         abort_if((int) $test->materi?->kelas_id !== (int) $kelasId, 403);
 
         return $user;
+    }
+
+    private function resolveSiswaKelasId(User $user): ?int
+    {
+        $kelasId = $user->siswaProfile()->value('kelas_id');
+        return $kelasId ? (int) $kelasId : null;
     }
 
     private function resolveTest(string $publicKey): Test

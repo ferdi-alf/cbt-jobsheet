@@ -13,5 +13,7 @@ export async function fetchPretests(params?: {
     const search = params?.search?.trim();
     if (search) query.set("search", search);
 
-    return api.get<PretestListResponse>(`/api/pretests?${query.toString()}`);
+    return api.get<PretestListResponse>(
+        `/api/siswa/pretests?${query.toString()}`,
+    );
 }

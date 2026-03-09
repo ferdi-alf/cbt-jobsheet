@@ -1,4 +1,5 @@
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,16 @@ export default function SlideDrawerShell({
     title,
     children,
 }: Props) {
-    return (
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!mounted) return null;
+
+    return createPortal(
         <div
             className={cn(
                 "fixed inset-0 z-50",
@@ -48,10 +58,11 @@ export default function SlideDrawerShell({
                     <div className="font-semibold truncate">{title}</div>
                 </div>
 
-                <div className="h-[calc(100vh-56px)] overflow-auto p-4">
+                <div className="h-[calc(100vh-56px)] overflow-auto pb-4 pl-4 pr-4">
                     {children}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

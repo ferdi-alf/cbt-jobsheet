@@ -2,7 +2,7 @@ export interface User {
     id: number;
     name?: string | null;
     email: string;
-    email_verified_at?: string;
+    email_verified_at?: string | null;
     role?: "admin" | "guru" | "siswa" | null;
     avatar_path?: string | null;
     profile?: {
@@ -14,6 +14,6 @@ export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {
     auth: {
-        user: User;
+        user: User | null;
     };
 };

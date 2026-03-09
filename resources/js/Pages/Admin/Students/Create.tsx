@@ -186,7 +186,13 @@ export default function StudentsCreate() {
                             <BulkStudentFields
                                 item={item}
                                 idx={idx}
-                                bulk={api}
+                                bulk={{
+                                    ...api,
+                                    getFieldError: (
+                                        index: number,
+                                        field: string,
+                                    ) => api.getFieldError(index, field) ?? "",
+                                }}
                             />
                         )}
                     />

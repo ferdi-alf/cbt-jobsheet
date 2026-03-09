@@ -1,12 +1,12 @@
 import SiswaLayout from "@/Layouts/SiswaLayout";
 import { Head } from "@inertiajs/react";
-import MateriGrid from "@/features/siswa-materi/components/MateriGrid";
+import SiswaMateriList from "@/features/siswa-materi/components/SiswaMateriList";
 
-export default function SiswaMateriIndex() {
+export default function SiswaMateriPage() {
     return (
         <SiswaLayout>
-            <Head title="Materi" />
-            <MateriGrid />
+            <Head title="Materi Saya" />
+            <SiswaMateriList />
         </SiswaLayout>
     );
 }

@@ -141,7 +141,7 @@ export default function MateriFormDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-4 overflow-auto">
+                <div className="grid gap-4 overflow-auto p-2">
                     <div className="grid gap-2">
                         <Label>Judul</Label>
                         <Input

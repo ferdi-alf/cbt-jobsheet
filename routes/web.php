@@ -84,7 +84,7 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
 
 
     Route::get('/materi', fn () => inertia('Materi/Index'))->name('materi.index');
-     Route::prefix('api')->group(function () {
+    Route::prefix('api')->group(function () {
         Route::get('/materis', [MateriController::class, 'index']);
         Route::get('/materis/{materi}', [MateriController::class, 'show']);
         Route::get('/materis/{materi}/tests', [MateriController::class, 'tests']);
@@ -93,7 +93,7 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
         Route::get('/materis/{materi}/download', [MateriController::class, 'download'])
             ->name('api.materis.download');
         Route::post('/materis', [MateriController::class, 'store']);
-        Route::post('/materis/{materi}', [MateriController::class, 'update']); 
+        Route::put('/materis/{materi}', [MateriController::class, 'update']);
         Route::delete('/materis/{materi}', [MateriController::class, 'destroy']);
     });
     
@@ -133,17 +133,9 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
     ]))->name('siswa.tests.finished');
 
     Route::prefix('api')->group(function () {
-        Route::get('/pretests', [SiswaPretestController::class, 'index'])
-            ->name('api.siswa.pretests.index');
-
-        Route::get('/materis', [SiswaMateriController::class, 'index'])
-            ->name('api.siswa.materis.index');
-
-        Route::get('/materis/{materi}/download', [SiswaMateriController::class, 'download'])
-            ->name('api.siswa.materis.download');
-
         Route::post('/tests/{publicKey}/start', [SiswaTestSessionController::class, 'start'])
             ->name('api.siswa.tests.start');
+            
         Route::post('/tests/{publicKey}/answers', [SiswaTestSessionController::class, 'saveAnswer'])
             ->name('api.siswa.tests.answers');
         Route::post('/tests/{publicKey}/submit', [SiswaTestSessionController::class, 'submit'])
@@ -151,6 +143,35 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
         Route::get('/tests/{publicKey}/result', [SiswaTestSessionController::class, 'result'])
             ->name('api.siswa.tests.result');
     });
+
+    Route::prefix('api/siswa')->group(function () {
+        Route::get('/pretests', [SiswaPretestController::class, 'index'])
+            ->name('api.siswa.pretests.index');
+
+        Route::get('/materis', [SiswaMateriController::class, 'index'])
+            ->name('api.siswa.materis.index');
+            
+        Route::get('/materis/{materi}', [SiswaMateriController::class, 'show'])
+            ->name('api.siswa.materis.show');
+
+        Route::get('/materis/{materi}/pdf', [SiswaMateriController::class, 'pdf'])
+            ->name('api.siswa.materis.pdf');
+
+        Route::get('/materis/{materi}/download', [SiswaMateriController::class, 'download'])
+            ->name('api.siswa.materis.download');
+
+        Route::post('/materis/{materi}/practice/photos', [SiswaMateriController::class, 'storePhoto'])
+            ->name('api.siswa.practice.photos.store');
+        Route::post('/materis/{materi}/practice/submit', [SiswaMateriController::class, 'submitPractice'])
+            ->name('api.siswa.practice.submit');
+    });
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/api/practice-photos/{photo}', [SiswaMateriController::class, 'viewPhoto'])
+        ->name('api.practice-photos.show');
+    Route::delete('/api/practice-photos/{photo}', [SiswaMateriController::class, 'destroyPhoto'])
+        ->name('api.practice-photos.destroy');
 });
 
 require __DIR__ . '/auth.php';

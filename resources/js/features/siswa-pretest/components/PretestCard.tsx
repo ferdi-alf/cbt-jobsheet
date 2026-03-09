@@ -194,7 +194,7 @@ export default function PretestCard({ item }: { item: PretestCardItem }) {
                         </b>
                     </span>
 
-                    {item.attempt?.status === "finished" && (
+                    {item.attempt?.status === "submitted" && (
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-emerald-700 dark:text-emerald-300">
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             Sudah dikerjakan

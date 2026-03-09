@@ -101,6 +101,8 @@ export default function TestSessionScreen({
                     <TestSessionSidebar
                         questions={vm.session.questions}
                         currentIndex={vm.currentIndex}
+                        answeredCount={vm.answeredCount}
+                        totalQuestions={vm.session.total_questions}
                         onJump={vm.jumpTo}
                         onSubmit={vm.submit}
                         submitting={vm.submitting}

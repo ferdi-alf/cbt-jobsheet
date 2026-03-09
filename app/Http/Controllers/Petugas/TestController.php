@@ -12,6 +12,7 @@ use App\Models\TestQuestion;
 use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TestController extends Controller
 {
@@ -24,13 +25,23 @@ class TestController extends Controller
         $user = $request->user();
 
         $query = Test::query()
+            ->select([
+                'id',
+                'materi_id',
+                'type',
+                'title',
+                'duration_minutes',
+                'is_score_visible',
+                'created_by',
+                'created_at',
+                'start_at',
+                'end_at',
+            ])
             ->with([
                 'materi:id,title,kelas_id,mapel_id',
                 'materi.kelas:id,name',
                 'materi.mapel:id,name',
-                'materi.kelas:id,name',
-                'materi.mapel:id,name',
-                'creator:id,name,role',
+                'creator:id,name,email,role',
                 'creator.guruProfile:user_id,full_name',
             ])
             ->withCount('questions')
@@ -62,39 +73,39 @@ class TestController extends Controller
             $paginator = $this->paginateEloquent($query, $page, $limit);
 
             $items = collect($paginator->items())->map(function (Test $t) {
-            $creator = $t->creator;
+                $creator = $t->creator;
 
-            return [
-                'id' => $t->id,
-                'title' => $t->title,
-                'type' => $t->type,
-                'duration_minutes' => (int) $t->duration_minutes,
-                'is_score_visible' => (bool) $t->is_score_visible,
-                'start_at' => optional($t->start_at)->toDateTimeString(),
-                'end_at' => optional($t->end_at)->toDateTimeString(),
-                'total_questions' => (int) ($t->questions_count ?? 0),
+                return [
+                    'id' => $t->id,
+                    'title' => $t->title,
+                    'type' => $t->type,
+                    'duration_minutes' => (int) $t->duration_minutes,
+                    'is_score_visible' => (bool) $t->is_score_visible,
+                    'start_at' => optional($t->start_at)->toDateTimeString(),
+                    'end_at' => optional($t->end_at)->toDateTimeString(),
+                    'total_questions' => (int) ($t->questions_count ?? 0),
 
-                'materi' => $t->materi ? [
-                    'id' => $t->materi->id,
-                    'title' => $t->materi->title,
-                ] : null,
-                'kelas' => $t->materi?->kelas?->name,
-                'mapel' => $t->materi?->mapel?->name,
+                    'materi' => $t->materi ? [
+                        'id' => $t->materi->id,
+                        'title' => $t->materi->title,
+                        'kelas' => $t->materi?->kelas?->name,
+                        'mapel' => $t->materi?->mapel?->name,
+                    ] : null,
 
-                'created_by' => $creator ? [
-                    'id' => $creator->id,
-                    'name' => $creator->name,
-                    'email' => $creator->email,
-                    'role' => $creator->role,
-                    'full_name' => $creator->guruProfile?->full_name,
-                ] : null,
+                    'created_by' => $creator ? [
+                        'id' => $creator->id,
+                        'name' => $creator->name,
+                        'email' => $creator->email,
+                        'role' => $creator->role,
+                        'full_name' => $creator->guruProfile?->full_name,
+                    ] : null,
 
-                'created_at' => optional($t->created_at)->toDateTimeString(),
-            ];
-        })->values();
+                    'created_at' => optional($t->created_at)->toDateTimeString(),
+                ];
+            })->values();
 
-        return $this->paginatedResponse($paginator, $items);
-    }
+            return $this->paginatedResponse($paginator, $items);
+        }
 
     public function store(TestStoreRequest $request)
     {
@@ -113,16 +124,21 @@ class TestController extends Controller
         }
 
         $testId = DB::transaction(function () use ($data, $user) {
-            $test = Test::create([
-                'materi_id' => (int)$data['materi_id'],
-                'type' => $data['type'],
-                'title' => $data['title'],
-                'duration_minutes' => (int)$data['duration_minutes'],
-                'start_at' => $data['start_at'] ?? null,
-                'end_at' => $data['end_at'] ?? null,
-                'is_score_visible' => (bool)$data['is_score_visible'],
-                'created_by' => $user->id,
-            ]);
+                $this->ensureSinglePretestPerMateri(
+                    (int) $data['materi_id'],
+                    (string) $data['type'],
+                );
+
+                $test = Test::create([
+                    'materi_id' => (int)$data['materi_id'],
+                    'type' => $data['type'],
+                    'title' => $data['title'],
+                    'duration_minutes' => (int)$data['duration_minutes'],
+                    'start_at' => $data['start_at'] ?? null,
+                    'end_at' => $data['end_at'] ?? null,
+                    'is_score_visible' => (bool)$data['is_score_visible'],
+                    'created_by' => $user->id,
+                ]);
 
             $questions = collect($data['questions'])->values()->map(function ($q, $idx) use ($test) {
                 return [
@@ -215,6 +231,15 @@ class TestController extends Controller
         }
 
         DB::transaction(function () use ($test, $data) {
+            $nextMateriId = (int) ($data['materi_id'] ?? $test->materi_id);
+            $nextType = (string) ($data['type'] ?? $test->type);
+
+            $this->ensureSinglePretestPerMateri(
+                $nextMateriId,
+                $nextType,
+                $test->id,
+            );
+
             foreach (['materi_id','type','title','duration_minutes','start_at','end_at','is_score_visible'] as $f) {
                 if (array_key_exists($f, $data)) $test->{$f} = $data[$f];
             }
@@ -427,5 +452,27 @@ class TestController extends Controller
         })->values();
 
         return $this->paginatedResponse($paginator, $items);
+    }
+
+    private function ensureSinglePretestPerMateri(int $materiId, string $type, ?int $ignoreTestId = null): void
+    {
+        if ($type !== 'pretest') {
+            return;
+        }
+
+        $exists = Test::query()
+            ->where('materi_id', $materiId)
+            ->where('type', 'pretest')
+            ->when($ignoreTestId, fn ($q) => $q->whereKeyNot($ignoreTestId))
+            ->lockForUpdate()
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'materi_id' => [
+                    'Materi ini sudah memiliki pretest. Setiap materi hanya boleh memiliki 1 pretest.',
+                ],
+            ]);
+        }
     }
 }
