@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             KelasSeeder::class,
             MapelSeeder::class,
             AdminUserSeeder::class,
+            DumySeeder::class
         ]);
     }
 }

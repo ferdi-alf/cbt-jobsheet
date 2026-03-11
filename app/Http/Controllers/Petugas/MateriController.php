@@ -3,24 +3,25 @@
 namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Concerns\ResolvesGuruProfile;
 use App\Http\Requests\Petugas\MateriStoreRequest;
 use App\Http\Requests\Petugas\MateriUpdateRequest;
 use App\Models\Materi;
 use App\Models\PracticeChecklist;
 use App\Models\PracticeRule;
+use App\Models\PracticeSubmission;
+use App\Models\TestAttempt;
+use App\Services\MateriResultsExportService;
 use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use App\Models\PracticeSubmission;
-use App\Models\TestAttempt;
-use App\Services\MateriResultsExportService;
 
 class MateriController extends Controller
 {
-    use PaginatesApi;
+    use PaginatesApi, ResolvesGuruProfile;
 
     public function index(Request $request)
     {
@@ -39,13 +40,8 @@ class MateriController extends Controller
             ->orderByDesc('id');
 
         if ($user->role === 'guru') {
-            $gp = $user->guruProfile;
-            if (!$gp || !$gp->kelas_id || !$gp->mapel_id) {
-                return $this->paginatedResponse(
-                    $this->paginateEloquent($query->whereRaw('1=0'), $page, $limit),
-                    collect([])->values()
-                );
-            }
+            // Ambil profil guru langsung dari DB — jangan pakai lazy-load
+            $gp = $this->requireGuruProfile($user->id);
 
             $query->where('kelas_id', $gp->kelas_id)
                   ->where('mapel_id', $gp->mapel_id);
@@ -53,7 +49,7 @@ class MateriController extends Controller
 
         if ($search !== '') {
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', '%'.$search.'%');
+                $q->where('title', 'like', '%' . $search . '%');
             });
         }
 
@@ -61,22 +57,22 @@ class MateriController extends Controller
 
         $items = collect($paginator->items())->map(function (Materi $m) {
             return [
-                'id' => $m->id,
-                'title' => $m->title,
-                'kelas' => $m->kelas?->name,
-                'mapel' => $m->mapel?->name,
-                'kelas_id' => $m->kelas_id,
-                'mapel_id' => $m->mapel_id,
+                'id'                     => $m->id,
+                'title'                  => $m->title,
+                'kelas'                  => $m->kelas?->name,
+                'mapel'                  => $m->mapel?->name,
+                'kelas_id'               => $m->kelas_id,
+                'mapel_id'               => $m->mapel_id,
                 'export_results_zip_url' => route('api.materis.export-results-zip', ['materi' => $m->id]),
-                'created_by' => $m->creator ? [
-                    'id' => $m->creator->id,
-                    'name' => $m->creator->name,
+                'created_by'             => $m->creator ? [
+                    'id'    => $m->creator->id,
+                    'name'  => $m->creator->name,
                     'email' => $m->creator->email,
                 ] : null,
                 'praktik_text' => $m->praktik_text,
-                'pdf_url' => $m->pdf_path ? Storage::disk('public')->url($m->pdf_path) : null,
+                'pdf_url'      => $m->pdf_path ? Storage::disk('public')->url($m->pdf_path) : null,
                 'download_url' => route('api.materis.download', ['materi' => $m->id]),
-                'created_at' => optional($m->created_at)->toDateTimeString(),
+                'created_at'   => optional($m->created_at)->toDateTimeString(),
             ];
         })->values();
 
@@ -95,22 +91,22 @@ class MateriController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $materi->id,
-                'title' => $materi->title,
-                'praktik_text' => $materi->praktik_text,
-                'kelas_id' => $materi->kelas_id,
-                'mapel_id' => $materi->mapel_id,
-                'kelas' => $materi->kelas?->name,
-                'mapel' => $materi->mapel?->name,
+            'data'    => [
+                'id'                     => $materi->id,
+                'title'                  => $materi->title,
+                'praktik_text'           => $materi->praktik_text,
+                'kelas_id'               => $materi->kelas_id,
+                'mapel_id'               => $materi->mapel_id,
+                'kelas'                  => $materi->kelas?->name,
+                'mapel'                  => $materi->mapel?->name,
                 'export_results_zip_url' => route('api.materis.export-results-zip', ['materi' => $materi->id]),
-                'created_by' => $materi->creator ? [
-                    'id' => $materi->creator->id,
-                    'name' => $materi->creator->name,
+                'created_by'             => $materi->creator ? [
+                    'id'    => $materi->creator->id,
+                    'name'  => $materi->creator->name,
                     'email' => $materi->creator->email,
                 ] : null,
                 'pdf' => [
-                    'url' => $materi->pdf_path ? Storage::disk('public')->url($materi->pdf_path) : null,
+                    'url'          => $materi->pdf_path ? Storage::disk('public')->url($materi->pdf_path) : null,
                     'download_url' => route('api.materis.download', ['materi' => $materi->id]),
                 ],
                 'created_at' => optional($materi->created_at)->toDateTimeString(),
@@ -127,8 +123,7 @@ class MateriController extends Controller
         $data = $request->validated();
 
         if ($user->role === 'guru') {
-            $gp = $user->guruProfile;
-            abort_if(!$gp || !$gp->kelas_id || !$gp->mapel_id, 403);
+            $gp = $this->requireGuruProfile($user->id);
 
             $data['kelas_id'] = (int) $gp->kelas_id;
             $data['mapel_id'] = (int) $gp->mapel_id;
@@ -137,12 +132,12 @@ class MateriController extends Controller
         $pdfPath = $request->file('pdf')->store('materi_pdfs', 'public');
 
         $materi = Materi::create([
-            'title' => $data['title'],
+            'title'        => $data['title'],
             'praktik_text' => $data['praktik_text'] ?? null,
-            'kelas_id' => (int) $data['kelas_id'],
-            'mapel_id' => (int) $data['mapel_id'],
-            'created_by' => $user->id,
-            'pdf_path' => $pdfPath,
+            'kelas_id'     => (int) $data['kelas_id'],
+            'mapel_id'     => (int) $data['mapel_id'],
+            'created_by'   => $user->id,
+            'pdf_path'     => $pdfPath,
         ]);
 
         return response()->json(['success' => true, 'data' => ['id' => $materi->id]]);
@@ -156,21 +151,17 @@ class MateriController extends Controller
         $data = $request->validated();
 
         if ($user->role === 'guru') {
+            // Guru tidak boleh mengubah kelas/mapel
             unset($data['kelas_id'], $data['mapel_id']);
         }
 
         DB::transaction(function () use ($request, $materi, $data) {
-            if (array_key_exists('title', $data)) {
-                $materi->title = $data['title'];
-            }
-            if (array_key_exists('praktik_text', $data)) {
-                $materi->praktik_text = $data['praktik_text'];
-            }
-            if (array_key_exists('kelas_id', $data)) {
-                $materi->kelas_id = (int) $data['kelas_id'];
-            }
-            if (array_key_exists('mapel_id', $data)) {
-                $materi->mapel_id = (int) $data['mapel_id'];
+            foreach (['title', 'praktik_text', 'kelas_id', 'mapel_id'] as $field) {
+                if (array_key_exists($field, $data)) {
+                    $materi->{$field} = in_array($field, ['kelas_id', 'mapel_id'])
+                        ? (int) $data[$field]
+                        : $data[$field];
+                }
             }
 
             if ($request->hasFile('pdf')) {
@@ -191,7 +182,7 @@ class MateriController extends Controller
         $this->authorize('delete', $materi);
 
         DB::transaction(function () use ($materi) {
-           if ($materi->pdf_path) {
+            if ($materi->pdf_path) {
                 Storage::disk('public')->delete($materi->pdf_path);
             }
             $materi->delete();
@@ -207,7 +198,11 @@ class MateriController extends Controller
         abort_if(!$materi->pdf_path || !Storage::disk('public')->exists($materi->pdf_path), 404);
 
         $materi->loadMissing(['kelas:id,name', 'mapel:id,name']);
-        $filename = Str::slug(($materi->title ?: 'materi') . '-' . ($materi->mapel?->name ?: 'mapel') . '-' . ($materi->kelas?->name ?: 'kelas')) . '.pdf';
+        $filename = Str::slug(
+            ($materi->title ?: 'materi') . '-' .
+            ($materi->mapel?->name ?: 'mapel') . '-' .
+            ($materi->kelas?->name ?: 'kelas')
+        ) . '.pdf';
 
         return response()->download(
             Storage::disk('public')->path($materi->pdf_path),
@@ -219,14 +214,15 @@ class MateriController extends Controller
     public function tests(Request $request, Materi $materi)
     {
         $this->authorize('view', $materi);
+
         $tests = $materi->tests()
             ->select(['id', 'title', 'type', 'created_at'])
             ->orderByDesc('id')
             ->get()
             ->map(fn ($t) => [
-                'id' => $t->id,
-                'title' => $t->title,
-                'type' => $t->type,
+                'id'         => $t->id,
+                'title'      => $t->title,
+                'type'       => $t->type,
                 'created_at' => optional($t->created_at)->toDateTimeString(),
             ]);
 
@@ -241,30 +237,28 @@ class MateriController extends Controller
 
         $query = PracticeRule::query()
             ->where('materi_id', $materi->id)
-            ->select(['id','materi_id','title','deadline_at','created_by','created_at'])
+            ->select(['id', 'materi_id', 'title', 'deadline_at', 'created_by', 'created_at'])
             ->orderByDesc('id');
 
         if ($search !== '') {
-            $query->where('title', 'like', '%'.$search.'%');
+            $query->where('title', 'like', '%' . $search . '%');
         }
 
         $paginator = $this->paginateEloquent($query, $page, $limit);
 
-        $items = collect($paginator->items())->map(function (PracticeRule $r) {
-            return [
-                'id' => $r->id,
-                'title' => $r->title,
-                'deadline_at' => optional($r->deadline_at)->toDateTimeString(),
-                'created_at' => optional($r->created_at)->toDateTimeString(),
-            ];
-        })->values();
+        $items = collect($paginator->items())->map(fn (PracticeRule $r) => [
+            'id'          => $r->id,
+            'title'       => $r->title,
+            'deadline_at' => optional($r->deadline_at)->toDateTimeString(),
+            'created_at'  => optional($r->created_at)->toDateTimeString(),
+        ])->values();
 
         return $this->paginatedResponse($paginator, $items);
     }
 
     public function ruleChecklists(Request $request, PracticeRule $rule)
     {
-        $rule->load('materi'); 
+        $rule->load('materi');
         $this->authorize('view', $rule->materi);
 
         ['page' => $page, 'limit' => $limit, 'search' => $search] = $this->tableParams($request);
@@ -274,19 +268,17 @@ class MateriController extends Controller
             ->orderBy('order');
 
         if ($search !== '') {
-            $query->where('title', 'like', '%'.$search.'%');
+            $query->where('title', 'like', '%' . $search . '%');
         }
 
         $paginator = $this->paginateEloquent($query, $page, $limit);
 
-        $items = collect($paginator->items())->map(function (PracticeChecklist $c) {
-            return [
-                'id' => $c->id,
-                'title' => $c->title,
-                'order' => $c->order,
-                'created_at' => optional($c->created_at)->toDateTimeString(),
-            ];
-        })->values();
+        $items = collect($paginator->items())->map(fn (PracticeChecklist $c) => [
+            'id'         => $c->id,
+            'title'      => $c->title,
+            'order'      => $c->order,
+            'created_at' => optional($c->created_at)->toDateTimeString(),
+        ])->values();
 
         return $this->paginatedResponse($paginator, $items);
     }
@@ -316,15 +308,15 @@ class MateriController extends Controller
                 }
 
                 return [
-                    'id' => $row->id,
-                    'full_name' => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
-                    'status' => $row->status,
-                    'status_label' => $row->status === 'graded' ? 'Dikumpulkan - dinilai' : 'Dikumpulkan - belum dinilai',
-                    'total_score' => $row->total_score,
-                    'graded_by_label' => $graderName,
-                    'submitted_at' => optional($row->submitted_at)->toDateTimeString(),
-                    'graded_at' => optional($row->graded_at)->toDateTimeString(),
-                    'feedback' => $row->feedback,
+                    'id'               => $row->id,
+                    'full_name'        => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
+                    'status'           => $row->status,
+                    'status_label'     => $row->status === 'graded' ? 'Dikumpulkan - dinilai' : 'Dikumpulkan - belum dinilai',
+                    'total_score'      => $row->total_score,
+                    'graded_by_label'  => $graderName,
+                    'submitted_at'     => optional($row->submitted_at)->toDateTimeString(),
+                    'graded_at'        => optional($row->graded_at)->toDateTimeString(),
+                    'feedback'         => $row->feedback,
                 ];
             })
             ->values();
@@ -354,23 +346,19 @@ class MateriController extends Controller
             ->get()
             ->map(function ($row) {
                 $correct = $row->answers->where('is_correct', true)->count();
-                $wrong = $row->answers->where('is_correct', false)->count();
-                $seconds = (int) ($row->duration_seconds ?? 0);
-                $durationLabel = $seconds > 0
-                    ? sprintf('%02d:%02d:%02d', floor($seconds / 3600), floor(($seconds % 3600) / 60), $seconds % 60)
-                    : '-';
+                $wrong   = $row->answers->where('is_correct', false)->count();
 
                 return [
-                    'id' => $row->id,
-                    'full_name' => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
-                    'title' => $row->test?->title ?: '-',
-                    'type' => $row->test?->type,
+                    'id'               => $row->id,
+                    'full_name'        => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
+                    'title'            => $row->test?->title ?: '-',
+                    'type'             => $row->test?->type,
                     'duration_seconds' => $row->duration_seconds,
-                    'score' => $row->score,
-                    'created_at' => optional($row->created_at)->toDateTimeString(),
-                    'submitted_at' => optional($row->finished_at)->toDateTimeString(),
-                    'correct' => $correct,
-                    'wrong' => $wrong,
+                    'score'            => $row->score,
+                    'created_at'       => optional($row->created_at)->toDateTimeString(),
+                    'submitted_at'     => optional($row->finished_at)->toDateTimeString(),
+                    'correct'          => $correct,
+                    'wrong'            => $wrong,
                 ];
             })
             ->values();
@@ -397,8 +385,6 @@ class MateriController extends Controller
             ->orderByDesc('avg_score')
             ->limit(5)
             ->get();
-
-        
 
         return response()->json(['success' => true, 'data' => $rows, 'error' => null]);
     }

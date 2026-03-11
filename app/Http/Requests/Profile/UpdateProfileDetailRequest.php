@@ -21,7 +21,6 @@ class UpdateProfileDetailRequest extends FormRequest
             return [
                 'full_name' => ['required', 'string', 'max:150'],
                 'nip' => ['nullable', 'string', 'max:50'],
-                'gender' => ['nullable', Rule::in(['L', 'P'])],
                 'phone' => ['nullable', 'string', 'max:30'],
                 'kelas_id' => ['nullable', 'integer', 'exists:kelas,id'],
                 'mapel_id' => ['nullable', 'integer', 'exists:mapels,id'],
@@ -31,6 +30,7 @@ class UpdateProfileDetailRequest extends FormRequest
         if ($user->isSiswa()) {
             return [
                 'full_name' => ['required', 'string', 'max:150'],
+                'gender' => ['nullable', Rule::in(['L', 'P'])],
                 'phone' => ['nullable', 'string', 'max:30'],
             ];
         }
@@ -45,6 +45,7 @@ class UpdateProfileDetailRequest extends FormRequest
         if ($user->isSiswa()) {
             $this->replace([
                 'full_name' => $this->input('full_name'),
+                'gender' => $this->input('gender'),
                 'phone' => $this->input('phone'),
             ]);
         }

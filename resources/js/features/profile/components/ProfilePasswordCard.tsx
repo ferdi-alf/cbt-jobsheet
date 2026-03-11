@@ -79,13 +79,20 @@ function PasswordInput({
     return (
         <div className="grid gap-2">
             <Label>{label}</Label>
-            <div className="bg-red-700">
+            <div className="relative">
                 <Input
                     type={visible ? "text" : "password"}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     className="pr-10"
                 />
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                    {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
             </div>
         </div>
     );

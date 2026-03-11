@@ -33,7 +33,7 @@ class StudentController extends Controller
             ])
             ->orderBy('sp.full_name');
 
-        // guru: hanya kelas yg dia handle
+        
         if ($auth?->role === 'guru') {
             $kelasId = DB::table('guru_profiles')->where('user_id', $auth->id)->value('kelas_id');
             $query->where('sp.kelas_id', $kelasId ?: -1);
@@ -207,4 +207,5 @@ class StudentController extends Controller
             'error' => null,
         ]);
     }
+
 }

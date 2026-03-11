@@ -46,9 +46,9 @@ export default function GuruSidebar({
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}
-                            href="/guru/dashboard"
+                            href="/dashboard"
                             icon={<LayoutDashboard className="h-4 w-4" />}
-                            activePathStartsWith="/guru/dashboard"
+                            activePathStartsWith="/dashboard"
                         >
                             Dashboard
                         </SidebarItem>

@@ -22,7 +22,7 @@ export default function GuruLayout({ children }: PropsWithChildren) {
                     <GuruSidebar onNavigate={() => setSidebarOpen(false)} />
                 </MobileSidebar>
 
-                <main className="flex-1 min-w-0 p-4 md:p-6 pt-16 md:pt-6">
+                <main className="flex-1 h-screen overflow-auto min-w-0 p-4 md:p-6 pt-16 md:pt-6">
                     {children}
                 </main>
             </div>

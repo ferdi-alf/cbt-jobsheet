@@ -45,8 +45,8 @@ export default function AdminSidebar({
                     </div>
                 </div>
             </div>
-            <div className="sm:h-[490px] h-[450px]  overflow-auto">
-                <nav className="flex-1 h-full mb-5   py-2">
+            <div className="sm:h-[490px] h-[430px]  overflow-auto">
+                <nav className="flex-1 h-full  sm:mb-5   py-2">
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}

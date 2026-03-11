@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Materi;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 class MateriPolicy
 {
@@ -17,10 +18,18 @@ class MateriPolicy
         return $user->role === 'guru';
     }
 
+    /**
+     * Ambil guru_profile via DB::table langsung — bukan $user->guruProfile.
+     * Lazy-load relationship bisa menghasilkan kelas_id/mapel_id null
+     * jika sebelumnya di-load dengan select constraint.
+     */
     protected function guruMatchesMateri(User $user, Materi $materi): bool
     {
-        $gp = $user->guruProfile;
-        if (!$gp) return false;
+        $gp = DB::table('guru_profiles')
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$gp || !$gp->kelas_id || !$gp->mapel_id) return false;
 
         return (int) $gp->kelas_id === (int) $materi->kelas_id
             && (int) $gp->mapel_id === (int) $materi->mapel_id;

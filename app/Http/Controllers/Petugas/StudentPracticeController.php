@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Petugas;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Models\PracticeSubmission;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -62,7 +61,7 @@ class StudentPracticeController extends Controller
                 'materi_title' => $p->materi_title,
                 'status' => $p->status,
                 'is_late' => (bool) $p->is_late,
-                'submitted_at' => optional($p->submitted_at)->toDateTimeString(),
+                'submitted_at' => $p->submitted_at,
                 'total_score' => $p->total_score,
             ];
         })->values();
@@ -85,57 +84,4 @@ class StudentPracticeController extends Controller
         ]);
     }
 
-    // expandable row: items+photos untuk 1 submission
-    public function items(PracticeSubmission $submission, Request $request)
-    {
-        $auth = $request->user();
-
-        // authz: guru hanya boleh lihat submission siswa kelas dia
-        if ($auth->role === 'guru') {
-            $kelasId = DB::table('guru_profiles')->where('user_id', $auth->id)->value('kelas_id');
-            $studentKelas = DB::table('siswa_profiles')->where('user_id', $submission->student_user_id)->value('kelas_id');
-            if (!$kelasId || $studentKelas != $kelasId) {
-                return response()->json([
-                    'success' => false,
-                    'data' => null,
-                    'error' => 'Forbidden',
-                ], 403);
-            }
-        }
-
-        $rows = DB::table('practice_submission_items as psi')
-            ->join('practice_checklists as pc', 'pc.id', '=', 'psi.checklist_id')
-            ->where('psi.submission_id', $submission->id)
-            ->orderBy('pc.order')
-            ->select([
-                'psi.id',
-                'pc.title as title',
-                'psi.note as note',
-            ])
-            ->get()
-            ->map(function ($it) {
-                $photos = DB::table('practice_submission_photos')
-                    ->where('submission_item_id', $it->id)
-                    ->orderByDesc('id')
-                    ->get()
-                    ->map(fn($ph) => [
-                        'id' => $ph->id,
-                        'url' => asset('storage/'.$ph->photo_path),
-                    ]);
-
-                return [
-                    'id' => $it->id,
-                    'title' => $it->title,
-                    'note' => $it->note,
-                    'has_photo' => $photos->count() > 0,
-                    'photos' => $photos,
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'data' => $rows,
-            'error' => null,
-        ]);
-    }
 }

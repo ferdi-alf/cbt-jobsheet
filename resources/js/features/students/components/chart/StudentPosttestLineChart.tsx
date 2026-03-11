@@ -35,7 +35,7 @@ export default function StudentPosttestLineChart({
                         />
                         <YAxis />
                         <Tooltip />
-                        <Line dataKey="score" />
+                        <Line stroke="#3b82f6" dataKey="score" />
                     </LineChart>
                 </ResponsiveContainer>
             </CardContent>

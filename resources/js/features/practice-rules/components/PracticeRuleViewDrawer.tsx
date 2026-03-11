@@ -108,7 +108,6 @@ function PracticeRuleViewContent({
                 ))}
             </div>
 
-            {/* chart + belum */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="rounded-xl border p-3">
                     <div className="font-semibold mb-2">Ringkasan</div>
@@ -124,10 +123,6 @@ function PracticeRuleViewContent({
                                 </Badge>
                             </div>
                         ))}
-                    </div>
-                    <div className="text-xs text-muted-foreground pt-3">
-                        (Chart bisa ditingkatkan nanti, sementara ringkasan
-                        angka dulu.)
                     </div>
                 </div>
 

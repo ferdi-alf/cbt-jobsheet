@@ -86,18 +86,6 @@ export default function SiswaSidebar({
                     </div>
 
                     <div className="border-b my-2" />
-
-                    <SidebarSection>Praktik</SidebarSection>
-                    <div className="px-2 pt-2 space-y-1">
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/upload-practice"
-                            icon={<Upload className="h-4 w-4" />}
-                            activePathStartsWith="/upload-practice"
-                        >
-                            Upload Praktik
-                        </SidebarItem>
-                    </div>
                 </nav>
             </div>
 

@@ -6,7 +6,6 @@ use App\Http\Requests\Profile\UpdateAccountRequest;
 use App\Http\Requests\Profile\UpdatePasswordRequest;
 use App\Http\Requests\Profile\UpdateProfileDetailRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
@@ -109,7 +108,6 @@ class ProfileController extends Controller
                 [
                     'full_name' => $data['full_name'] ?? null,
                     'nip' => $data['nip'] ?? null,
-                    'gender' => $data['gender'] ?? null,
                     'phone' => $data['phone'] ?? null,
                     'kelas_id' => $data['kelas_id'] ?? null,
                     'mapel_id' => $data['mapel_id'] ?? null,

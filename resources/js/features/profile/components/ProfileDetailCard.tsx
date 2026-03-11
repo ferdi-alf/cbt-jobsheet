@@ -2,6 +2,7 @@ import { Button } from "@/Components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
+
 import type { DetailFormState } from "../types";
 
 export default function ProfileDetailCard({
@@ -32,12 +33,6 @@ export default function ProfileDetailCard({
                         onChange={(v) => onChange("full_name", v)}
                     />
 
-                    <Field
-                        label="No HP"
-                        value={form.phone}
-                        onChange={(v) => onChange("phone", v)}
-                    />
-
                     {form.type === "guru" && (
                         <>
                             <Field
@@ -45,11 +40,10 @@ export default function ProfileDetailCard({
                                 value={form.nip}
                                 onChange={(v) => onChange("nip", v)}
                             />
-
                             <Field
-                                label="Gender"
-                                value={form.gender}
-                                onChange={(v) => onChange("gender", v)}
+                                label="No HP"
+                                value={form.phone}
+                                onChange={(v) => onChange("phone", v)}
                             />
 
                             <Field
@@ -78,10 +72,9 @@ export default function ProfileDetailCard({
                             />
 
                             <Field
-                                label="Gender"
-                                value={form.gender}
-                                readOnly
-                                className={readOnlyClass}
+                                label="No HP"
+                                value={form.phone}
+                                onChange={(v) => onChange("phone", v)}
                             />
 
                             <Field
