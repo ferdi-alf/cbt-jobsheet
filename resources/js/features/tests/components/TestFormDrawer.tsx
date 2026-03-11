@@ -224,7 +224,7 @@ export default function TestFormDrawer({
             open={open}
             onOpenChange={setOpen}
             render={() => (
-                <div className="space-y-4">
+                <div className="space-y-4 pt-10">
                     <TestFormFields
                         form={form}
                         set={set}

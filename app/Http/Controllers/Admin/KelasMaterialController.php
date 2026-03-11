@@ -29,7 +29,7 @@ class KelasMaterialController extends Controller
                     'id' => $m->id,
                     'title' => $m->title,
                     'pdf_url' => $m->pdf_path ? asset('storage/'.$m->pdf_path) : null,
-                    'created_at' => optional($m->created_at)->toDateTimeString(),
+                    'created_at' => $m->created_at,
                     'created_by' => [
                         'id' => $m->user_id,
                         'name' => $m->user_name,

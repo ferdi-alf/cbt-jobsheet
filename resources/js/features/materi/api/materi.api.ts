@@ -1,6 +1,10 @@
 import { api } from "@/lib/http";
 import type {
     MateriDetail,
+    MateriLeaderboardRow,
+    MateriPracticeResultRow,
+    MateriTestResultRow,
+    MateriTopStudentRow,
     PracticeChecklistRes,
     PracticeRuleRow,
     TestRow,
@@ -35,5 +39,27 @@ export async function deleteMateri(id: number) {
 export async function getMateriPracticeRule(materiId: number) {
     return api.get<PracticeRuleRow | null>(
         `/api/materis/${materiId}/practice-checklists`,
+    );
+}
+
+export async function getMateriTopStudents(materiId: number) {
+    return api.get<MateriTopStudentRow[]>(`/api/materis/${materiId}/top-students`);
+}
+
+export async function getMateriPracticeResults(materiId: number) {
+    return api.get<MateriPracticeResultRow[]>(
+        `/api/materis/${materiId}/practice-results`,
+    );
+}
+
+export async function getMateriPretestResults(materiId: number) {
+    return api.get<MateriTestResultRow[]>(
+        `/api/materis/${materiId}/pretest-results`,
+    );
+}
+
+export async function getMateriPosttestResults(materiId: number) {
+    return api.get<MateriTestResultRow[]>(
+        `/api/materis/${materiId}/posttest-results`,
     );
 }

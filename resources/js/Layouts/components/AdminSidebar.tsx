@@ -46,7 +46,7 @@ export default function AdminSidebar({
                 </div>
             </div>
             <div className="sm:h-[490px] h-[450px]  overflow-auto">
-                <nav className="flex-1 h-full   py-2">
+                <nav className="flex-1 h-full mb-5   py-2">
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}
@@ -138,7 +138,7 @@ export default function AdminSidebar({
                         </SidebarItem>
                     </div>
                     <div className="border-b"></div>
-                    <div className="px-2 pt-2 space-y-1">
+                    <div className="px-2 pt-2 space-y-1 mb-">
                         <SidebarItem
                             onClick={onNavigate}
                             href="/tests"
@@ -146,16 +146,6 @@ export default function AdminSidebar({
                             activePathStartsWith="/tests"
                         >
                             Test
-                        </SidebarItem>
-                    </div>
-                    <div className="px-2 pt-2 space-y-1">
-                        <SidebarItem
-                            onClick={onNavigate}
-                            href="/scores"
-                            icon={<BarChart3 className="h-4 w-4" />}
-                            activePathStartsWith="/scores"
-                        >
-                            Nilai
                         </SidebarItem>
                     </div>
                 </nav>

@@ -6,8 +6,15 @@ import type {
     UploadedPracticePhoto,
 } from "../types";
 
-export async function getSiswaMateris() {
-    return api.get<SiswaMateriListItem[]>("/api/siswa/materis");
+export async function getSiswaMateris(search = "") {
+    const query = new URLSearchParams();
+
+    const q = search.trim();
+    if (q) query.set("search", q);
+
+    const suffix = query.toString() ? `?${query.toString()}` : "";
+
+    return api.get<SiswaMateriListItem[]>(`/api/siswa/materis${suffix}`);
 }
 
 export async function getSiswaMateri(id: number) {

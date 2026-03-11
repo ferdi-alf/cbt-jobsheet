@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Models\PracticeSubmission;
+use App\Models\TestAttempt;
+use App\Services\MateriResultsExportService;
 
 class MateriController extends Controller
 {
@@ -64,6 +67,7 @@ class MateriController extends Controller
                 'mapel' => $m->mapel?->name,
                 'kelas_id' => $m->kelas_id,
                 'mapel_id' => $m->mapel_id,
+                'export_results_zip_url' => route('api.materis.export-results-zip', ['materi' => $m->id]),
                 'created_by' => $m->creator ? [
                     'id' => $m->creator->id,
                     'name' => $m->creator->name,
@@ -71,7 +75,7 @@ class MateriController extends Controller
                 ] : null,
                 'praktik_text' => $m->praktik_text,
                 'pdf_url' => $m->pdf_path ? Storage::disk('public')->url($m->pdf_path) : null,
-                'download_url' => route('api.materis.download', ['materi' => $m->id]), 
+                'download_url' => route('api.materis.download', ['materi' => $m->id]),
                 'created_at' => optional($m->created_at)->toDateTimeString(),
             ];
         })->values();
@@ -99,6 +103,7 @@ class MateriController extends Controller
                 'mapel_id' => $materi->mapel_id,
                 'kelas' => $materi->kelas?->name,
                 'mapel' => $materi->mapel?->name,
+                'export_results_zip_url' => route('api.materis.export-results-zip', ['materi' => $materi->id]),
                 'created_by' => $materi->creator ? [
                     'id' => $materi->creator->id,
                     'name' => $materi->creator->name,
@@ -284,5 +289,123 @@ class MateriController extends Controller
         })->values();
 
         return $this->paginatedResponse($paginator, $items);
+    }
+
+    public function practiceResults(Request $request, Materi $materi)
+    {
+        $this->authorize('view', $materi);
+
+        $rows = PracticeSubmission::query()
+            ->with([
+                'student:id,name,email',
+                'student.siswaProfile:user_id,full_name',
+                'grader:id,name,role',
+                'grader.guruProfile:user_id,full_name',
+            ])
+            ->where('materi_id', $materi->id)
+            ->whereIn('status', ['submitted', 'graded'])
+            ->orderByRaw("CASE WHEN status = 'submitted' THEN 0 ELSE 1 END")
+            ->orderByDesc('submitted_at')
+            ->get()
+            ->map(function ($row) {
+                $graderName = null;
+                if ($row->grader) {
+                    $graderName = $row->grader->role === 'admin'
+                        ? 'Admin'
+                        : ($row->grader->guruProfile?->full_name ?: $row->grader->name);
+                }
+
+                return [
+                    'id' => $row->id,
+                    'full_name' => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
+                    'status' => $row->status,
+                    'status_label' => $row->status === 'graded' ? 'Dikumpulkan - dinilai' : 'Dikumpulkan - belum dinilai',
+                    'total_score' => $row->total_score,
+                    'graded_by_label' => $graderName,
+                    'submitted_at' => optional($row->submitted_at)->toDateTimeString(),
+                    'graded_at' => optional($row->graded_at)->toDateTimeString(),
+                    'feedback' => $row->feedback,
+                ];
+            })
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $rows, 'error' => null]);
+    }
+
+    public function testAttempts(Request $request, Materi $materi)
+    {
+        $this->authorize('view', $materi);
+
+        $type = (string) $request->query('type', 'pretest');
+        abort_unless(in_array($type, ['pretest', 'posttest'], true), 422);
+
+        $rows = TestAttempt::query()
+            ->with([
+                'test:id,materi_id,title,type',
+                'student:id,name,email',
+                'student.siswaProfile:user_id,full_name',
+                'answers:id,attempt_id,is_correct',
+            ])
+            ->whereHas('test', function ($q) use ($materi, $type) {
+                $q->where('materi_id', $materi->id)->where('type', $type);
+            })
+            ->where('status', 'submitted')
+            ->orderByDesc('finished_at')
+            ->get()
+            ->map(function ($row) {
+                $correct = $row->answers->where('is_correct', true)->count();
+                $wrong = $row->answers->where('is_correct', false)->count();
+                $seconds = (int) ($row->duration_seconds ?? 0);
+                $durationLabel = $seconds > 0
+                    ? sprintf('%02d:%02d:%02d', floor($seconds / 3600), floor(($seconds % 3600) / 60), $seconds % 60)
+                    : '-';
+
+                return [
+                    'id' => $row->id,
+                    'full_name' => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
+                    'title' => $row->test?->title ?: '-',
+                    'type' => $row->test?->type,
+                    'duration_seconds' => $row->duration_seconds,
+                    'score' => $row->score,
+                    'created_at' => optional($row->created_at)->toDateTimeString(),
+                    'submitted_at' => optional($row->finished_at)->toDateTimeString(),
+                    'correct' => $correct,
+                    'wrong' => $wrong,
+                ];
+            })
+            ->values();
+
+        return response()->json(['success' => true, 'data' => $rows, 'error' => null]);
+    }
+
+    public function topStudents(Request $request, Materi $materi)
+    {
+        $this->authorize('view', $materi);
+
+        $rows = DB::table('test_attempts')
+            ->join('tests', 'tests.id', '=', 'test_attempts.test_id')
+            ->join('users', 'users.id', '=', 'test_attempts.student_user_id')
+            ->leftJoin('siswa_profiles', 'siswa_profiles.user_id', '=', 'users.id')
+            ->selectRaw('test_attempts.student_user_id')
+            ->selectRaw('COALESCE(siswa_profiles.full_name, users.name, users.email) as full_name')
+            ->selectRaw('ROUND(AVG(test_attempts.score), 2) as avg_score')
+            ->selectRaw("SUM(CASE WHEN tests.type = 'pretest' THEN 1 ELSE 0 END) as pretest_count")
+            ->selectRaw("SUM(CASE WHEN tests.type = 'posttest' THEN 1 ELSE 0 END) as posttest_count")
+            ->where('tests.materi_id', $materi->id)
+            ->where('test_attempts.status', 'submitted')
+            ->groupBy('test_attempts.student_user_id', 'full_name')
+            ->orderByDesc('avg_score')
+            ->limit(5)
+            ->get();
+
+        
+
+        return response()->json(['success' => true, 'data' => $rows, 'error' => null]);
+    }
+
+    public function exportResultsZip(Request $request, Materi $materi, MateriResultsExportService $service)
+    {
+        $this->authorize('view', $materi);
+        return $service->download($materi, $request->user());
     }
 }

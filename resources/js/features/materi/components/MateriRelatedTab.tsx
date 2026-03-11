@@ -1,93 +1,215 @@
 import DataTable from "@/Components/data-table/DataTable";
-import type { TestRow } from "../types";
+import { Badge } from "@/Components/ui/badge";
+import MateriTopStudentsBarChart from "./MateriTopStudentsChart";
 
-type PracticeRuleRow = {
+type PracticeResultRow = {
     id: number;
-    title: string | null;
-    deadline_at?: string | null;
-    created_at?: string;
+    full_name: string;
+    status: "draft" | "submitted" | "graded";
+    total_score: number | null;
+    graded_by_label: string | null;
+    submitted_at?: string | null;
+    graded_at?: string | null;
+    feedback?: string | null;
 };
 
-type ChecklistRow = {
+type TestResultRow = {
     id: number;
-    order: number;
+    full_name: string;
     title: string;
-    created_at?: string;
+    duration_seconds?: number | null;
+    score?: number | null;
+    submitted_at?: string | null;
+    created_at?: string | null;
+    correct: number;
+    wrong: number;
 };
+
+function fmtDuration(v?: number | null) {
+    if (!v) return "-";
+    const minutes = Math.floor(v / 60);
+    const seconds = v % 60;
+    return `${minutes}m ${seconds}s`;
+}
 
 export default function MateriRelatedTab({ materiId }: { materiId: number }) {
     return (
         <div className="space-y-4">
-            <div className="rounded-xl border p-4">
-                <div className="font-semibold mb-2">Pretest & Posttest</div>
-                <DataTable<TestRow>
-                    fetchUrl={`/api/materis/${materiId}/tests`}
-                    columns={
-                        [
-                            { key: "title", label: "Title" },
-                            { key: "type", label: "Type" },
-                            { key: "created_at", label: "Created At" },
-                        ] as any
-                    }
-                    search={{ enabled: false }}
-                    pagination={{ enabled: false }}
-                    striped
-                    emptyMessage="Belum ada test."
-                />
-            </div>
+            <MateriTopStudentsBarChart materiId={materiId} />
 
             <div className="rounded-xl border p-4">
-                <div className="font-semibold mb-2">Praktek</div>
-
-                <DataTable<PracticeRuleRow>
-                    fetchUrl={`/api/materis/${materiId}/practice-checklists`}
+                <div className="mb-2 font-semibold">Hasil Praktik</div>
+                <DataTable<PracticeResultRow>
+                    fetchUrl={`/api/materis/${materiId}/practice-results`}
                     columns={
                         [
-                            { key: "title", label: "Rule" },
-                            { key: "deadline_at", label: "Deadline" },
-                            { key: "created_at", label: "Created At" },
+                            { key: "full_name", label: "Nama Lengkap" },
+                            {
+                                key: "status",
+                                label: "Status",
+                                render: (v: any, row: PracticeResultRow) => {
+                                    if (row.status === "graded") {
+                                        return <Badge>Sudah dinilai</Badge>;
+                                    }
+                                    if (row.status === "submitted") {
+                                        return (
+                                            <Badge variant="secondary">
+                                                Dikumpulkan - belum dinilai
+                                            </Badge>
+                                        );
+                                    }
+                                    return (
+                                        <Badge variant="outline">Draft</Badge>
+                                    );
+                                },
+                            },
+                            {
+                                key: "total_score",
+                                label: "Nilai",
+                                render: (v: any) => v ?? "-",
+                            },
+                            {
+                                key: "graded_by_label",
+                                label: "Dinilai Oleh",
+                                render: (v: any) => v ?? "-",
+                            },
+                            {
+                                key: "submitted_at",
+                                label: "Submitted At",
+                            },
+                            {
+                                key: "graded_at",
+                                label: "Graded At",
+                                render: (v: any) => v ?? "-",
+                            },
                         ] as any
                     }
-                    search={{ enabled: false }}
-                    pagination={{ enabled: false }}
+                    search={{
+                        enabled: true,
+                        placeholder: "Cari nama siswa...",
+                        debounceMs: 300,
+                    }}
+                    pagination={{
+                        enabled: true,
+                        pageSize: 10,
+                        pageSizeOptions: [5, 10, 15, 20],
+                    }}
                     striped
                     expandable={{
-                        condition: () => true,
-                        render: (_sub, rule) => (
-                            <div className="rounded-lg border p-3 bg-background">
-                                <div className="font-semibold mb-2">
-                                    Checklist
+                        condition: (row) => !!row.feedback,
+                        render: (_sub, row) => (
+                            <div className="rounded-lg border bg-background p-3">
+                                <div className="mb-1 text-sm font-semibold">
+                                    Feedback
                                 </div>
-                                <DataTable<ChecklistRow>
-                                    fetchUrl={`/api/practice-rules/${rule.id}/checklists`}
-                                    columns={
-                                        [
-                                            { key: "order", label: "#" },
-                                            { key: "title", label: "Title" },
-                                            {
-                                                key: "created_at",
-                                                label: "Created At",
-                                            },
-                                        ] as any
-                                    }
-                                    search={{
-                                        enabled: true,
-                                        placeholder: "Cari checklist...",
-                                        debounceMs: 300,
-                                    }}
-                                    pagination={{
-                                        enabled: true,
-                                        pageSize: 10,
-                                        pageSizeOptions: [5, 10, 15, 20],
-                                    }}
-                                    striped
-                                    emptyMessage="Belum ada checklist."
-                                />
+                                <div className="text-sm text-muted-foreground whitespace-pre-line">
+                                    {row.feedback || "-"}
+                                </div>
                             </div>
                         ),
                     }}
-                    emptyMessage="Belum ada rule praktek."
+                    emptyMessage="Belum ada hasil praktik."
                 />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+                <div className="rounded-xl border p-4">
+                    <div className="mb-2 font-semibold">Hasil Pretest</div>
+                    <DataTable<TestResultRow>
+                        fetchUrl={`/api/materis/${materiId}/test-attempts?type=pretest`}
+                        columns={
+                            [
+                                { key: "full_name", label: "Nama Lengkap" },
+                                { key: "title", label: "Judul Test" },
+                                {
+                                    key: "duration_seconds",
+                                    label: "Lama Waktu",
+                                    render: (v: any) =>
+                                        fmtDuration(Number(v ?? 0)),
+                                },
+                                {
+                                    key: "score",
+                                    label: "Nilai",
+                                    render: (v: any) => v ?? "-",
+                                },
+                                { key: "submitted_at", label: "Dikerjakan" },
+                                {
+                                    key: "correct",
+                                    label: "Benar / Salah",
+                                    render: (_: any, row: TestResultRow) => (
+                                        <div className="flex flex-wrap gap-2">
+                                            <Badge>{row.correct}</Badge>
+                                            <Badge variant="destructive">
+                                                {row.wrong}
+                                            </Badge>
+                                        </div>
+                                    ),
+                                },
+                            ] as any
+                        }
+                        search={{
+                            enabled: true,
+                            placeholder: "Cari siswa...",
+                            debounceMs: 300,
+                        }}
+                        pagination={{
+                            enabled: true,
+                            pageSize: 10,
+                            pageSizeOptions: [5, 10, 15, 20],
+                        }}
+                        striped
+                        emptyMessage="Belum ada hasil pretest."
+                    />
+                </div>
+
+                <div className="rounded-xl border p-4">
+                    <div className="mb-2 font-semibold">Hasil Posttest</div>
+                    <DataTable<TestResultRow>
+                        fetchUrl={`/api/materis/${materiId}/test-attempts?type=posttest`}
+                        columns={
+                            [
+                                { key: "full_name", label: "Nama Lengkap" },
+                                { key: "title", label: "Judul Test" },
+                                {
+                                    key: "duration_seconds",
+                                    label: "Lama Waktu",
+                                    render: (v: any) =>
+                                        fmtDuration(Number(v ?? 0)),
+                                },
+                                {
+                                    key: "score",
+                                    label: "Nilai",
+                                    render: (v: any) => v ?? "-",
+                                },
+                                { key: "submitted_at", label: "Dikerjakan" },
+                                {
+                                    key: "correct",
+                                    label: "Benar / Salah",
+                                    render: (_: any, row: TestResultRow) => (
+                                        <div className="flex flex-wrap gap-2">
+                                            <Badge>{row.correct}</Badge>
+                                            <Badge variant="destructive">
+                                                {row.wrong}
+                                            </Badge>
+                                        </div>
+                                    ),
+                                },
+                            ] as any
+                        }
+                        search={{
+                            enabled: true,
+                            placeholder: "Cari siswa...",
+                            debounceMs: 300,
+                        }}
+                        pagination={{
+                            enabled: true,
+                            pageSize: 10,
+                            pageSizeOptions: [5, 10, 15, 20],
+                        }}
+                        striped
+                        emptyMessage="Belum ada hasil posttest."
+                    />
+                </div>
             </div>
         </div>
     );

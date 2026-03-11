@@ -67,7 +67,6 @@ function KelasDrawerContent({ kelasId }: { kelasId: number }) {
 
     const o = overviewQ.data!;
     const materials = materialsQ.data ?? [];
-    const students = studentsQ.data ?? [];
 
     return (
         <div className="space-y-4">
@@ -83,7 +82,6 @@ function KelasDrawerContent({ kelasId }: { kelasId: number }) {
                 </div>
             </div>
 
-            {/* Stats cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                     <CardHeader className="pb-2">

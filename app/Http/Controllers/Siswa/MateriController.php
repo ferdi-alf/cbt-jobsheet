@@ -33,15 +33,25 @@ class MateriController extends Controller
             ]);
         }
 
+        $search = trim((string) $request->query('search', ''));
+
+
         $materis = Materi::query()
-            ->with([
-                'kelas:id,name',
-                'mapel:id,name',
-                'practiceRule:id,materi_id,title,deadline_at',
-            ])
-            ->where('kelas_id', $kelasId)
-            ->orderByDesc('id')
-            ->get();
+        ->with([
+            'kelas:id,name',
+            'mapel:id,name',
+            'practiceRule:id,materi_id,title,deadline_at',
+        ])
+        ->where('kelas_id', $kelasId)
+        ->when($search !== '', function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                    ->orWhereHas('mapel', fn ($m) => $m->where('name', 'like', '%' . $search . '%'))
+                    ->orWhereHas('practiceRule', fn ($r) => $r->where('title', 'like', '%' . $search . '%'));
+            });
+        })
+        ->orderByDesc('id')
+        ->get();
 
         $materiIds = $materis->pluck('id');
 

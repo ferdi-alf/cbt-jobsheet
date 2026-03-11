@@ -8,7 +8,6 @@ import DataTable from "@/Components/data-table/DataTable";
 import { Button } from "@/Components/ui/button";
 
 import type { UserRow } from "@/features/users/types";
-import UserViewDrawer from "@/features/users/components/UserViewDrawer";
 import UserFormDialog from "@/features/users/components/UserFormDialog";
 import DeleteUserDialog from "@/features/users/components/DeleteUserDialog";
 import { Badge } from "@/Components/ui/badge";
@@ -53,15 +52,6 @@ export default function UsersIndex() {
 
     const actions = (row: UserRow) => (
         <>
-            <UserViewDrawer
-                userId={row.id}
-                trigger={
-                    <Button variant="ghost" size="icon" aria-label="View user">
-                        <Eye className="h-4 w-4" />
-                    </Button>
-                }
-            />
-
             <UserFormDialog
                 mode="edit"
                 initial={row}

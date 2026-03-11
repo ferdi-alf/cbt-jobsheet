@@ -30,7 +30,7 @@ export default function TopPosttestBarChart({
                         />
                         <YAxis />
                         <Tooltip />
-                        <Bar dataKey="score" />
+                        <Bar fill="#3b82f6" dataKey="score" />
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>

@@ -1,54 +1,80 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import EntityDrawer from "@/Components/drawers/EntityDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
 import { Button } from "@/Components/ui/button";
-import { Download } from "lucide-react";
+import { FileArchive } from "lucide-react";
+import { downloadFile } from "@/lib/download";
 
 import { getMateri } from "../api/materi.api";
 import type { MateriDetail } from "../types";
-import PdfObjectViewer from "./PdfObjectViewer";
+import MateriPdfPagesTab from "./MateriPdfPagesTab";
 import MateriRelatedTab from "./MateriRelatedTab";
+import { toast } from "sonner";
 
 function MateriDrawerContent({ materi }: { materi: MateriDetail }) {
     const pdfViewUrl = materi.pdf?.url ?? null;
     const downloadUrl = materi.pdf?.download_url ?? null;
+    const exportZipUrl = materi.export_results_zip_url ?? null;
+    const [downloadingZip, setDownloadingZip] = useState(false);
 
     return (
         <div className="space-y-4">
             {materi.praktik_text?.trim() && (
                 <div className="rounded-xl border p-4">
-                    <div className="font-semibold mb-1">Praktik</div>
-                    <div className="text-sm text-muted-foreground whitespace-pre-line">
+                    <div className="mb-1 font-semibold">Praktik</div>
+                    <div className="whitespace-pre-line text-sm text-muted-foreground">
                         {materi.praktik_text}
                     </div>
                 </div>
             )}
 
             <Tabs defaultValue="pdf">
-                <div className="sticky top-0 z-10 bg-background border-b pb-2">
-                    <TabsList>
-                        <TabsTrigger value="pdf">PDF</TabsTrigger>
-                        <TabsTrigger value="related">Terkait</TabsTrigger>
-                    </TabsList>
-                </div>
-
-                <TabsContent value="pdf" className="mt-4 space-y-3">
+                <div className="sticky top-0 z-10 border-b bg-background pb-2">
                     <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm text-muted-foreground">
-                            {materi.kelas} • {materi.mapel}
-                        </div>
+                        <TabsList>
+                            <TabsTrigger value="pdf">PDF</TabsTrigger>
+                            <TabsTrigger value="related">Terkait</TabsTrigger>
+                        </TabsList>
 
                         <Button
                             variant="outline"
                             size="sm"
-                            disabled={!downloadUrl}
-                            onClick={() =>
-                                downloadUrl &&
-                                window.open(downloadUrl, "_blank")
-                            }
+                            disabled={!exportZipUrl || downloadingZip}
+                            onClick={async () => {
+                                if (!exportZipUrl) return;
+                                try {
+                                    setDownloadingZip(true);
+                                    toast.loading("Menyiapkan ZIP hasil...", {
+                                        id: "drawer-download-zip",
+                                    });
+                                    await downloadFile(
+                                        exportZipUrl,
+                                        `${materi.title || "materi"}-hasil.zip`,
+                                    );
+                                    toast.success("Download dimulai", {
+                                        id: "drawer-download-zip",
+                                    });
+                                } catch (e: any) {
+                                    toast.error(
+                                        e?.message ?? "Gagal download ZIP",
+                                        { id: "drawer-download-zip" },
+                                    );
+                                } finally {
+                                    setDownloadingZip(false);
+                                }
+                            }}
                         >
-                            Download
+                            <FileArchive className="mr-2 h-4 w-4" />
+                            {downloadingZip
+                                ? "Menyiapkan..."
+                                : "Unduh Hasil ZIP"}
                         </Button>
+                    </div>
+                </div>
+
+                <TabsContent value="pdf" className="mt-4 space-y-3">
+                    <div className="text-sm text-muted-foreground">
+                        {materi.kelas} • {materi.mapel}
                     </div>
 
                     {!pdfViewUrl ? (
@@ -56,7 +82,10 @@ function MateriDrawerContent({ materi }: { materi: MateriDetail }) {
                             PDF tidak tersedia.
                         </div>
                     ) : (
-                        <PdfObjectViewer url={pdfViewUrl} />
+                        <MateriPdfPagesTab
+                            viewUrl={pdfViewUrl}
+                            downloadUrl={downloadUrl}
+                        />
                     )}
                 </TabsContent>
 
@@ -87,16 +116,18 @@ export default function MateriViewDrawer({
             cacheKey={(id) => ["materi-detail", Number(id)]}
             render={({ data, loading, error }) => {
                 if (loading) return <div className="text-sm">Loading...</div>;
-                if (error)
+                if (error) {
                     return (
                         <div className="text-sm text-destructive">{error}</div>
                     );
-                if (!data)
+                }
+                if (!data) {
                     return (
                         <div className="text-sm text-muted-foreground">
                             No data
                         </div>
                     );
+                }
                 return <MateriDrawerContent materi={data} />;
             }}
         />

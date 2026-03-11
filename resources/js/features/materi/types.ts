@@ -8,7 +8,7 @@ export type MateriRow = {
     kelas?: string | null;
     mapel_id?: number | null;
     kelas_id?: number | null;
-
+    export_results_zip_url?: string | null;
     praktik_text?: string | null;
 
     created_by?:
@@ -38,6 +38,7 @@ export type MateriDetail = {
     } | null;
 
     pdf?: { download_url?: string | null; url: string | null } | null;
+    export_results_zip_url?: string | null;
 
     created_at?: string;
 };
@@ -67,4 +68,54 @@ export type ChecklistRow = {
     title: string;
     order: number;
     created_at?: string;
+};
+
+export type MateriTestAttemptRow = {
+    id: number;
+    full_name: string;
+    test_title: string;
+    type: "pretest" | "posttest";
+    duration_label: string;
+    score: number | null;
+    created_at: string | null;
+    submitted_at: string | null;
+    total_correct: number;
+    total_wrong: number;
+};
+
+export type MateriTopStudentRow = {
+    student_user_id: number;
+    full_name: string;
+    avg_score: number;
+    pretest_count: number;
+    posttest_count: number;
+};
+
+export type MateriLeaderboardRow = {
+    student_id: number;
+    name: string;
+    avg_score: number;
+};
+
+export type MateriPracticeResultRow = {
+    id: number;
+    full_name: string;
+    status: "draft" | "submitted" | "graded";
+    total_score: number | null;
+    graded_by_label: string | null;
+    submitted_at: string | null;
+    graded_at: string | null;
+    feedback?: string | null;
+};
+
+export type MateriTestResultRow = {
+    id: number;
+    full_name: string;
+    title: string;
+    duration_seconds: number | null;
+    score: number | null;
+    created_at: string | null;
+    submitted_at: string | null;
+    correct: number;
+    wrong: number;
 };

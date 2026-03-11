@@ -11,6 +11,8 @@ import type {
     UploadedPracticePhoto,
 } from "../types";
 
+type PersistedPhoto = PracticeChecklist["photos"][number];
+
 type PendingPhoto = {
     id: string;
     view_url: string;
@@ -19,17 +21,20 @@ type PendingPhoto = {
 };
 
 type ChecklistWithPending = Omit<PracticeChecklist, "photos"> & {
-    photos: Array<PracticeChecklist["photos"][number] | PendingPhoto>;
+    photos: Array<PersistedPhoto | PendingPhoto>;
 };
 
 type PracticeState = Omit<SiswaMateriDetail["practice"], "checklists"> & {
     checklists: ChecklistWithPending[];
 };
 
-function isPendingPhoto(
-    photo: PracticeChecklist["photos"][number] | PendingPhoto,
-): photo is PendingPhoto {
-    return (photo as PendingPhoto).isUploading === true;
+function normalizeUploadedPhoto(saved: UploadedPracticePhoto): PersistedPhoto {
+    return {
+        id: saved.id,
+        view_url: saved.view_url,
+        uploaded_at: saved.uploaded_at ?? null,
+        isUploading: false,
+    };
 }
 
 export function usePracticeComposer({
@@ -83,7 +88,8 @@ export function usePracticeComposer({
                                   {
                                       id: tempId,
                                       view_url: previewUrl,
-                                      isUploading: true as const,
+                                      uploaded_at: null,
+                                      isUploading: true,
                                   },
                               ],
                           }
@@ -97,6 +103,7 @@ export function usePracticeComposer({
                     checklistId,
                     file,
                 );
+                const normalized = normalizeUploadedPhoto(saved);
 
                 setPractice((prev) => ({
                     ...prev,
@@ -108,7 +115,7 @@ export function usePracticeComposer({
                                   ...item,
                                   photos: item.photos.map((photo) =>
                                       String(photo.id) === tempId
-                                          ? (saved as UploadedPracticePhoto)
+                                          ? normalized
                                           : photo,
                                   ),
                               }
@@ -160,23 +167,61 @@ export function usePracticeComposer({
             return;
         }
 
+        let removedPhoto: PersistedPhoto | PendingPhoto | null = null;
+        let removedIndex = -1;
+
+        setPractice((prev) => ({
+            ...prev,
+            checklists: prev.checklists.map((item) => {
+                if (item.id !== checklistId) return item;
+
+                const index = item.photos.findIndex(
+                    (photo) => photo.id === photoId,
+                );
+
+                if (index !== -1) {
+                    removedPhoto = item.photos[index];
+                    removedIndex = index;
+                }
+
+                return {
+                    ...item,
+                    photos: item.photos.filter((photo) => photo.id !== photoId),
+                };
+            }),
+        }));
+
+        if (!removedPhoto) return;
+
         try {
             await deletePracticePhoto(photoId);
+            // sengaja tidak ada toast sukses
+        } catch (e: any) {
             setPractice((prev) => ({
                 ...prev,
-                checklists: prev.checklists.map((item) =>
-                    item.id === checklistId
-                        ? {
-                              ...item,
-                              photos: item.photos.filter(
-                                  (photo) => photo.id !== photoId,
-                              ),
-                          }
-                        : item,
-                ),
+                checklists: prev.checklists.map((item) => {
+                    if (item.id !== checklistId) return item;
+
+                    const alreadyExists = item.photos.some(
+                        (photo) => photo.id === photoId,
+                    );
+                    if (alreadyExists || !removedPhoto) return item;
+
+                    const nextPhotos = [...item.photos];
+                    const insertAt =
+                        removedIndex >= 0 && removedIndex <= nextPhotos.length
+                            ? removedIndex
+                            : nextPhotos.length;
+
+                    nextPhotos.splice(insertAt, 0, removedPhoto);
+
+                    return {
+                        ...item,
+                        photos: nextPhotos,
+                    };
+                }),
             }));
-            toast.success("Foto dihapus");
-        } catch (e: any) {
+
             toast.error(e?.message ?? "Gagal menghapus foto");
         }
     };
@@ -205,7 +250,6 @@ export function usePracticeComposer({
         canEdit,
         emptyCount,
         submitting,
-        isPendingPhoto,
         uploadFiles,
         removePhoto,
         submitAll,

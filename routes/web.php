@@ -21,6 +21,9 @@ use App\Http\Controllers\Petugas\TestController;
 use App\Http\Controllers\Siswa\PretestController as SiswaPretestController;
 use App\Http\Controllers\Siswa\MateriController as SiswaMateriController;
 use App\Http\Controllers\Siswa\TestSessionController as SiswaTestSessionController;
+use App\Http\Controllers\Siswa\PosttestController as SiswaPosttestController;
+use App\Http\Controllers\Petugas\PracticeResultController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return Auth::check()
@@ -95,6 +98,21 @@ Route::middleware(['auth', 'role:admin,guru'])->group(function () {
         Route::post('/materis', [MateriController::class, 'store']);
         Route::put('/materis/{materi}', [MateriController::class, 'update']);
         Route::delete('/materis/{materi}', [MateriController::class, 'destroy']);
+
+        Route::get('/materis/{materi}/practice-results', [MateriController::class, 'practiceResults']);
+        Route::get('/materis/{materi}/test-attempts', [MateriController::class, 'testAttempts']);
+        Route::get('/materis/{materi}/top-students', [MateriController::class, 'topStudents']);
+        Route::get('/materis/{materi}/export-results-zip', [MateriController::class, 'exportResultsZip'])
+            ->name('api.materis.export-results-zip');
+
+        Route::get('/practice-results', [PracticeResultController::class, 'index'])
+            ->name('api.practice-results.index');
+        Route::get('/practice-results/summary', [PracticeResultController::class, 'summary'])
+            ->name('api.practice-results.summary');
+        Route::get('/practice-results/{submission}', [PracticeResultController::class, 'show'])
+            ->name('api.practice-results.show');
+        Route::put('/practice-results/{submission}/grade', [PracticeResultController::class, 'grade'])
+            ->name('api.practice-results.grade');
     });
     
     Route::get('/practice-rules', fn () => inertia('Practice/Rules/Index'))->name('practice.rules.index');
@@ -148,6 +166,9 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
         Route::get('/pretests', [SiswaPretestController::class, 'index'])
             ->name('api.siswa.pretests.index');
 
+        Route::get('/posttests', [SiswaPosttestController::class, 'index'])
+            ->name('api.siswa.posttests.index');
+
         Route::get('/materis', [SiswaMateriController::class, 'index'])
             ->name('api.siswa.materis.index');
             
@@ -172,6 +193,15 @@ Route::middleware(['auth'])->group(function () {
         ->name('api.practice-photos.show');
     Route::delete('/api/practice-photos/{photo}', [SiswaMateriController::class, 'destroyPhoto'])
         ->name('api.practice-photos.destroy');
+
+    Route::get('/profile', fn () => inertia('Profile/Index'))->name('profile.index');
+
+    Route::prefix('api/profile')->group(function () {
+        Route::get('/', [ProfileController::class, 'show'])->name('api.profile.show');
+        Route::put('/account', [ProfileController::class, 'updateAccount'])->name('api.profile.account');
+        Route::put('/password', [ProfileController::class, 'updatePassword'])->name('api.profile.password');
+        Route::put('/detail', [ProfileController::class, 'updateDetail'])->name('api.profile.detail');
+    });
 });
 
 require __DIR__ . '/auth.php';

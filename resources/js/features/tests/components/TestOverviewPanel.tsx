@@ -153,7 +153,7 @@ export default function TestOverviewPanel({ testId }: { testId: number }) {
                                     <XAxis dataKey="name" hide />
                                     <YAxis />
                                     <Tooltip />
-                                    <Bar dataKey="score" />
+                                    <Bar fill="#3b82f6" dataKey="score" />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>

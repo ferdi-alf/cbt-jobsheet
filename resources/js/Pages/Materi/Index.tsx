@@ -3,7 +3,15 @@ import GuruLayout from "@/Layouts/GuruLayout";
 import { Head, usePage } from "@inertiajs/react";
 import DataTable from "@/Components/data-table/DataTable";
 import { Button } from "@/Components/ui/button";
-import { Eye, Pencil, Trash2, Download, FileText, Plus } from "lucide-react";
+import {
+    Eye,
+    Pencil,
+    Trash2,
+    Download,
+    FileText,
+    Plus,
+    Archive,
+} from "lucide-react";
 
 import type { MateriRow } from "@/features/materi/types";
 import MateriViewDrawer from "@/features/materi/components/MateriViewDrawer";
