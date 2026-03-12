@@ -45,8 +45,8 @@ export default function AdminSidebar({
                     </div>
                 </div>
             </div>
-            <div className="sm:h-[490px] h-[430px]  overflow-auto">
-                <nav className="flex-1 h-full  sm:mb-5   py-2">
+            <div className="sm:overflow-clip overflow-auto mb-2 sm:mb-0 sm:h-auto h-[420px]  ">
+                <nav className="flex-1 h-full   py-2">
                     <div className="px-2 pt-2 space-y-1">
                         <SidebarItem
                             onClick={onNavigate}
@@ -138,7 +138,7 @@ export default function AdminSidebar({
                         </SidebarItem>
                     </div>
                     <div className="border-b"></div>
-                    <div className="px-2 pt-2 space-y-1 mb-">
+                    <div className="px-2 pt-2 space-y-1 ">
                         <SidebarItem
                             onClick={onNavigate}
                             href="/tests"

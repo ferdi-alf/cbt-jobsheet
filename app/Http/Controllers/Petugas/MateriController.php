@@ -40,7 +40,6 @@ class MateriController extends Controller
             ->orderByDesc('id');
 
         if ($user->role === 'guru') {
-            // Ambil profil guru langsung dari DB — jangan pakai lazy-load
             $gp = $this->requireGuruProfile($user->id);
 
             $query->where('kelas_id', $gp->kelas_id)
@@ -151,7 +150,6 @@ class MateriController extends Controller
         $data = $request->validated();
 
         if ($user->role === 'guru') {
-            // Guru tidak boleh mengubah kelas/mapel
             unset($data['kelas_id'], $data['mapel_id']);
         }
 
@@ -287,7 +285,9 @@ class MateriController extends Controller
     {
         $this->authorize('view', $materi);
 
-        $rows = PracticeSubmission::query()
+        ['page' => $page, 'limit' => $limit, 'search' => $search] = $this->tableParams($request);
+
+        $query = PracticeSubmission::query()
             ->with([
                 'student:id,name,email',
                 'student.siswaProfile:user_id,full_name',
@@ -297,31 +297,39 @@ class MateriController extends Controller
             ->where('materi_id', $materi->id)
             ->whereIn('status', ['submitted', 'graded'])
             ->orderByRaw("CASE WHEN status = 'submitted' THEN 0 ELSE 1 END")
-            ->orderByDesc('submitted_at')
-            ->get()
-            ->map(function ($row) {
-                $graderName = null;
-                if ($row->grader) {
-                    $graderName = $row->grader->role === 'admin'
-                        ? 'Admin'
-                        : ($row->grader->guruProfile?->full_name ?: $row->grader->name);
-                }
+            ->orderByDesc('submitted_at');
 
-                return [
-                    'id'               => $row->id,
-                    'full_name'        => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
-                    'status'           => $row->status,
-                    'status_label'     => $row->status === 'graded' ? 'Dikumpulkan - dinilai' : 'Dikumpulkan - belum dinilai',
-                    'total_score'      => $row->total_score,
-                    'graded_by_label'  => $graderName,
-                    'submitted_at'     => optional($row->submitted_at)->toDateTimeString(),
-                    'graded_at'        => optional($row->graded_at)->toDateTimeString(),
-                    'feedback'         => $row->feedback,
-                ];
-            })
-            ->values();
+        // search by student name via join
+        if ($search) {
+            $query->whereHas('student.siswaProfile', function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%");
+            });
+        }
 
-        return response()->json(['success' => true, 'data' => $rows, 'error' => null]);
+        $paginator = $this->paginateEloquent($query, $page, $limit);
+
+        $items = collect($paginator->items())->map(function ($row) {
+            $graderName = null;
+            if ($row->grader) {
+                $graderName = $row->grader->role === 'admin'
+                    ? 'Admin'
+                    : ($row->grader->guruProfile?->full_name ?: $row->grader->name);
+            }
+
+            return [
+                'id'              => $row->id,
+                'full_name'       => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
+                'status'          => $row->status,
+                'status_label'    => $row->status === 'graded' ? 'Dikumpulkan - dinilai' : 'Dikumpulkan - belum dinilai',
+                'total_score'     => $row->total_score,
+                'graded_by_label' => $graderName,
+                'submitted_at'    => optional($row->submitted_at)->toDateTimeString(),
+                'graded_at'       => optional($row->graded_at)->toDateTimeString(),
+                'feedback'        => $row->feedback,
+            ];
+        })->values();
+
+        return $this->paginatedResponse($paginator, $items);
     }
 
     public function testAttempts(Request $request, Materi $materi)
@@ -331,7 +339,9 @@ class MateriController extends Controller
         $type = (string) $request->query('type', 'pretest');
         abort_unless(in_array($type, ['pretest', 'posttest'], true), 422);
 
-        $rows = TestAttempt::query()
+        ['page' => $page, 'limit' => $limit, 'search' => $search] = $this->tableParams($request);
+
+        $query = TestAttempt::query()
             ->with([
                 'test:id,materi_id,title,type',
                 'student:id,name,email',
@@ -342,28 +352,35 @@ class MateriController extends Controller
                 $q->where('materi_id', $materi->id)->where('type', $type);
             })
             ->where('status', 'submitted')
-            ->orderByDesc('finished_at')
-            ->get()
-            ->map(function ($row) {
-                $correct = $row->answers->where('is_correct', true)->count();
-                $wrong   = $row->answers->where('is_correct', false)->count();
+            ->orderByDesc('finished_at');
 
-                return [
-                    'id'               => $row->id,
-                    'full_name'        => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
-                    'title'            => $row->test?->title ?: '-',
-                    'type'             => $row->test?->type,
-                    'duration_seconds' => $row->duration_seconds,
-                    'score'            => $row->score,
-                    'created_at'       => optional($row->created_at)->toDateTimeString(),
-                    'submitted_at'     => optional($row->finished_at)->toDateTimeString(),
-                    'correct'          => $correct,
-                    'wrong'            => $wrong,
-                ];
-            })
-            ->values();
+        if ($search) {
+            $query->whereHas('student.siswaProfile', function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%");
+            });
+        }
 
-        return response()->json(['success' => true, 'data' => $rows, 'error' => null]);
+        $paginator = $this->paginateEloquent($query, $page, $limit);
+
+        $items = collect($paginator->items())->map(function ($row) {
+            $correct = $row->answers->where('is_correct', true)->count();
+            $wrong   = $row->answers->where('is_correct', false)->count();
+
+            return [
+                'id'               => $row->id,
+                'full_name'        => $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
+                'title'            => $row->test?->title ?: '-',
+                'type'             => $row->test?->type,
+                'duration_seconds' => $row->duration_seconds,
+                'score'            => $row->score,
+                'created_at'       => optional($row->created_at)->toDateTimeString(),
+                'submitted_at'     => optional($row->finished_at)->toDateTimeString(),
+                'correct'          => $correct,
+                'wrong'            => $wrong,
+            ];
+        })->values();
+
+        return $this->paginatedResponse($paginator, $items);
     }
 
     public function topStudents(Request $request, Materi $materi)
