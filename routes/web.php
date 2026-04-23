@@ -46,7 +46,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     
     Route::get('/kelas', fn () => inertia('Admin/Kelas/Index'))->name('kelas.index');
     Route::prefix('api')->group( function() {
-        Route::apiResource('kelas', KelasController::class)->except('create', 'edit');
+        Route::apiResource('kelas', KelasController::class)->except(['create', 'edit']);
         Route::get('kelas/{kelas}/students', [KelasStudentController::class, 'index']);
         Route::get('kelas/{kelas}/overview', [KelasOverviewController::class, 'show']);
         Route::get('kelas/{kelas}/materials', [KelasMaterialController::class, 'index']);

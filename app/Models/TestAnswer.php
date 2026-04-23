@@ -14,6 +14,10 @@ class TestAnswer extends Model
         'is_correct',
     ];
 
+    protected $casts = [
+        'is_correct' => 'boolean',
+    ];
+
 
     public function attempt(): BelongsTo
     {

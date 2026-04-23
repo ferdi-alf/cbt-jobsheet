@@ -10,6 +10,7 @@ export type TestOptionItem = {
 export type TestQuestionItem = {
     id: number;
     number: number;
+    image_url?: string | null;
     question: string;
     selected_option: TestOptionValue | null;
     options: TestOptionItem[];

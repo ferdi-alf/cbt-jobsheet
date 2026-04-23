@@ -9,6 +9,7 @@ use App\Models\Kelas;
 use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class KelasController extends Controller
 {
@@ -74,10 +75,20 @@ class KelasController extends Controller
         ]);
     }
 
-    public function update(KelasUpdateRequest $request, Kelas $kelas)
+    public function update(KelasUpdateRequest $request, Kelas $kelas, )
     {
         $data = $request->validated();
-        $kelas->update(['name' => $data['name']]);
+        
+        Log::info("Updating Kelas ID {$kelas->id} with data: " . json_encode($data));
+        $kelas->update([
+            'name' => $data['name']
+        ]);
+
+        if (!$kelas->wasChanged()) {
+            return response()->json(['success' => true, 'data' => false, 'error' => null]);
+        } else {
+            return response()->json(['success' => true, 'data' => true, 'error' => null]);
+        }
 
         return response()->json(['success' => true, 'data' => true, 'error' => null]);
     }

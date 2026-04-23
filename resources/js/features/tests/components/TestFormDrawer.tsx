@@ -14,6 +14,9 @@ import TestQuestionsBulk from "./TestQuestionsBulk";
 
 type QuestionForm = {
     question: string;
+    image_url?: string | null;
+    image_path?: string | null;
+    image_file?: File | null;
     option_a: string;
     option_b: string;
     option_c: string;
@@ -24,6 +27,9 @@ type QuestionForm = {
 
 const emptyQuestion = (): QuestionForm => ({
     question: "",
+    image_url: null,
+    image_path: null,
+    image_file: null,
     option_a: "",
     option_b: "",
     option_c: "",
@@ -106,6 +112,8 @@ export default function TestFormDrawer({
                     (d.questions?.length ? d.questions : [emptyQuestion()]).map(
                         (q) => ({
                             question: q.question ?? "",
+                            image_path: q.image_url ?? null,
+                            image_file: null,
                             option_a: q.option_a ?? "",
                             option_b: q.option_b ?? "",
                             option_c: q.option_c ?? "",
@@ -180,6 +188,7 @@ export default function TestFormDrawer({
             is_score_visible: !!form.is_score_visible,
             questions: bulk.items.map((q) => ({
                 question: q.question.trim(),
+                image_path: q.image_path ?? null,
                 option_a: q.option_a.trim(),
                 option_b: q.option_b.trim(),
                 option_c: q.option_c.trim(),
@@ -187,6 +196,7 @@ export default function TestFormDrawer({
                 option_e: q.option_e.trim(),
                 correct_option: q.correct_option,
             })),
+            questionFiles: bulk.items.map((q) => q.image_file ?? null),
         };
 
         try {

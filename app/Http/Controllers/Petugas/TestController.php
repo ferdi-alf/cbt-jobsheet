@@ -14,6 +14,7 @@ use App\Support\Api\PaginatesApi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage;
 
 class TestController extends Controller
 {
@@ -108,7 +109,7 @@ class TestController extends Controller
             $this->assertGuruCanAccessMateri($gp, $materi);
         }
 
-        $testId = DB::transaction(function () use ($data, $user) {
+        $testId = DB::transaction(function () use ($data, $user, $request) {
             $this->ensureSinglePretestPerMateri((int) $data['materi_id'], (string) $data['type']);
 
             $test = Test::create([
@@ -122,10 +123,19 @@ class TestController extends Controller
                 'created_by'       => $user->id,
             ]);
 
-            TestQuestion::insert(
-                collect($data['questions'])->values()->map(fn ($q, $idx) => [
+            $rows = [];
+            foreach (collect($data['questions'])->values() as $idx => $q) {
+                $imagePath = null;
+
+                $fileKey = "questions.{$idx}.image";
+                if ($request->hasFile($fileKey) && $request->file($fileKey)->isValid()) {
+                    $imagePath = $this->storeQuestionImage($request->file($fileKey), $test->id);
+                }
+
+                $rows[] = [
                     'test_id'        => $test->id,
                     'question'       => $q['question'],
+                    'image_path'     => $imagePath,
                     'option_a'       => $q['option_a'],
                     'option_b'       => $q['option_b'],
                     'option_c'       => $q['option_c'],
@@ -135,8 +145,10 @@ class TestController extends Controller
                     'order'          => $idx + 1,
                     'created_at'     => now(),
                     'updated_at'     => now(),
-                ])->all()
-            );
+                ];
+            }
+
+            TestQuestion::insert($rows);
 
             return $test->id;
         });
@@ -176,6 +188,7 @@ class TestController extends Controller
                 'questions' => $test->questions->map(fn ($q) => [
                     'id'             => $q->id,
                     'order'          => (int) $q->order,
+                    'image_url'      => $q->image_path,
                     'question'       => $q->question,
                     'option_a'       => $q->option_a,
                     'option_b'       => $q->option_b,
@@ -205,36 +218,92 @@ class TestController extends Controller
             }
         }
 
-        DB::transaction(function () use ($test, $data) {
+        DB::transaction(function () use ($test, $data, $request) { // ← $request ikut
             $nextMateriId = (int) ($data['materi_id'] ?? $test->materi_id);
             $nextType     = (string) ($data['type']     ?? $test->type);
 
             $this->ensureSinglePretestPerMateri($nextMateriId, $nextType, $test->id);
 
             foreach (['materi_id', 'type', 'title', 'duration_minutes',
-                      'start_at', 'end_at', 'is_score_visible'] as $f) {
+                    'start_at', 'end_at', 'is_score_visible'] as $f) {
                 if (array_key_exists($f, $data)) $test->{$f} = $data[$f];
             }
             $test->save();
 
             if (array_key_exists('questions', $data)) {
-                TestQuestion::where('test_id', $test->id)->delete();
+                $incoming = collect($data['questions'])->values();
 
-                TestQuestion::insert(
-                    collect($data['questions'])->values()->map(fn ($q, $idx) => [
-                        'test_id'        => $test->id,
+                // Ambil soal existing, key by order
+                $existingQuestions = TestQuestion::where('test_id', $test->id)
+                    ->orderBy('order')
+                    ->get()
+                    ->keyBy('order');
+
+                $keptOrders = [];
+
+                foreach ($incoming as $idx => $q) {
+                    $order    = $idx + 1;
+                    $fileKey  = "questions.{$idx}.image";
+                    $existing = $existingQuestions->get($order);
+                    $imagePath = null;
+
+                    if ($request->hasFile($fileKey) && $request->file($fileKey)->isValid()) {
+                        // Ada gambar baru — hapus gambar lama jika ada
+                        if ($existing?->image_path) {
+                            Storage::disk('public')->delete($existing->image_path);
+                        }
+                        $imagePath = $request->file($fileKey)->store("tests/{$test->id}/questions", 'public');
+                    } elseif (!empty($q['image_path'])) {
+                        // Pertahankan path gambar lama
+                        $imagePath = $q['image_path'];
+                    }
+
+                    $attributes = [
                         'question'       => $q['question'],
+                        'image_path'     => $imagePath,
                         'option_a'       => $q['option_a'],
                         'option_b'       => $q['option_b'],
                         'option_c'       => $q['option_c'],
                         'option_d'       => $q['option_d'],
                         'option_e'       => $q['option_e'],
                         'correct_option' => $q['correct_option'],
-                        'order'          => $idx + 1,
-                        'created_at'     => now(),
+                        'order'          => $order,
                         'updated_at'     => now(),
-                    ])->all()
-                );
+                    ];
+
+                    if ($existing) {
+                        // UPDATE in-place — ID tetap, test_answers aman
+                        $existing->update($attributes);
+                    } else {
+                        // Soal baru
+                        TestQuestion::create(array_merge($attributes, [
+                            'test_id'    => $test->id,
+                            'created_at' => now(),
+                        ]));
+                    }
+
+                    $keptOrders[] = $order;
+                }
+
+                // Hapus soal yang tidak ada di incoming,
+                // HANYA jika tidak punya riwayat jawaban siswa
+                $ordersToDelete = $existingQuestions->keys()->diff($keptOrders);
+
+                if ($ordersToDelete->isNotEmpty()) {
+                    TestQuestion::where('test_id', $test->id)
+                        ->whereIn('order', $ordersToDelete->all())
+                        ->get()
+                        ->each(function (TestQuestion $q) {
+                            $hasAnswers = \App\Models\TestAnswer::where('question_id', $q->id)->exists();
+                            if (!$hasAnswers) {
+                                if ($q->image_path) {
+                                    Storage::disk('public')->delete($q->image_path);
+                                }
+                                $q->delete();
+                            }
+                            // Jika ada jawaban siswa → biarkan, tidak dihapus
+                        });
+                }
             }
         });
 
@@ -365,10 +434,7 @@ class TestController extends Controller
                 'student:id,name,email',
                 'student.siswaProfile:user_id,full_name,kelas_id,nisn',
                 'student.siswaProfile.kelas:id,name',
-            ])
-            ->withCount([
-                'answers as correct_count' => fn ($q) => $q->where('is_correct', true),
-                'answers as wrong_count'   => fn ($q) => $q->where('is_correct', false),
+                'answers:id,attempt_id,is_correct',
             ])
             ->orderByDesc('id');
 
@@ -387,6 +453,13 @@ class TestController extends Controller
 
         $items = collect($paginator->items())->map(function (TestAttempt $a) {
             $profile = $a->student?->siswaProfile;
+            
+            // $correct = $a->answers?->where('is_correct', true)->count() ?? 0;
+            // $wrong = $a->answers?->where('is_correct', false)->count() ?? 0;
+            // Di attempts() controller
+            $correct = $a->answers?->filter(fn($ans) => (bool) $ans->is_correct)->count() ?? 0;
+            $wrong   = $a->answers?->filter(fn($ans) => !(bool) $ans->is_correct)->count() ?? 0;
+            
             return [
                 'id'               => $a->id,
                 'name'             => $profile?->full_name ?: ($a->student?->name ?: $a->student?->email),
@@ -396,8 +469,8 @@ class TestController extends Controller
                 'started_at'       => optional($a->started_at)->toDateTimeString(),
                 'finished_at'      => optional($a->finished_at)->toDateTimeString(),
                 'score'            => (int) ($a->score ?? 0),
-                'correct'          => (int) ($a->correct_count ?? 0),
-                'wrong'            => (int) ($a->wrong_count   ?? 0),
+                'correct'          => (int) $correct,
+                'wrong'            => (int) $wrong,
             ];
         })->values();
 
@@ -419,5 +492,10 @@ class TestController extends Controller
                 'materi_id' => ['Materi ini sudah memiliki pretest. Setiap materi hanya boleh memiliki 1 pretest.'],
             ]);
         }
+    }
+
+    private function storeQuestionImage(\Illuminate\Http\UploadedFile $file, int $testId): string
+    {
+        return $file->store("tests/{$testId}/questions", 'public');
     }
 }

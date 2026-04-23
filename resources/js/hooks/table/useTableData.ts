@@ -26,7 +26,7 @@ export const useTableData = <T>({
         const origin =
             typeof window !== "undefined"
                 ? window.location.origin
-                : "http://localhost";
+                : "https://demo.pegawaibintangsriwijaya.biz.id";
 
         const url = new URL(fetchUrl, origin);
         url.searchParams.set("page", String(page));

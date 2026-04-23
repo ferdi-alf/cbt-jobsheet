@@ -16,8 +16,13 @@ function getXsrfTokenFromCookie(): string {
 }
 
 function getApiBaseUrl() {
-    const base = (import.meta as any).env?.VITE_APP_URL as string | undefined;
-    return (base?.trim() || window.location.origin).replace(/\/$/, "");
+    const env = (import.meta as any).env;
+
+    if (env?.VITE_APP_URL) {
+        return env.VITE_APP_URL.replace(/\/$/, "");
+    }
+
+    return window.location.origin;
 }
 
 function buildUrl(path: string) {

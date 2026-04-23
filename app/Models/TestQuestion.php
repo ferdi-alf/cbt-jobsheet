@@ -10,6 +10,7 @@ class TestQuestion extends Model
 {
     protected $fillable = [
         'test_id',
+        'image_path',
         'question',
         'option_a',
         'option_b',
@@ -28,5 +29,12 @@ class TestQuestion extends Model
     public function answers(): HasMany
     {
         return $this->hasMany(TestAnswer::class, 'question_id');
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path
+            ? asset('storage/' . $this->image_path)
+            : null;
     }
 }

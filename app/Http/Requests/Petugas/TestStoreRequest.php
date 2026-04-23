@@ -15,23 +15,24 @@ class TestStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'materi_id' => ['required', 'exists:materis,id'],
-            'type' => ['required', Rule::in(['pretest', 'posttest'])],
-            'title' => ['required', 'string', 'max:255'],
-            'duration_minutes' => ['required', Rule::in([30,60,90,120])],
-            'start_at' => ['nullable', 'date'],
-            'end_at' => ['nullable', 'date', 'after_or_equal:start_at'],
+            'materi_id'        => ['required', 'exists:materis,id'],
+            'type'             => ['required', Rule::in(['pretest', 'posttest'])],
+            'title'            => ['required', 'string', 'max:255'],
+            'duration_minutes' => ['required', Rule::in([30, 60, 90, 120])],
+            'start_at'         => ['nullable', 'date'],
+            'end_at'           => ['nullable', 'date', 'after_or_equal:start_at'],
             'is_score_visible' => ['required', 'boolean'],
 
-            // ✅ bulk questions
-            'questions' => ['required', 'array', 'min:1'],
-            'questions.*.question' => ['required', 'string'],
-            'questions.*.option_a' => ['required', 'string'],
-            'questions.*.option_b' => ['required', 'string'],
-            'questions.*.option_c' => ['required', 'string'],
-            'questions.*.option_d' => ['required', 'string'],
-            'questions.*.option_e' => ['required', 'string'],
-            'questions.*.correct_option' => ['required', Rule::in(['a','b','c','d','e'])],
+            'questions'                    => ['required', 'array', 'min:1'],
+            'questions.*.question'         => ['required', 'string'],
+            'questions.*.image'            => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:2048'],
+            'questions.*.image_path'       => ['nullable', 'string'],
+            'questions.*.option_a'         => ['required', 'string'],
+            'questions.*.option_b'         => ['required', 'string'],
+            'questions.*.option_c'         => ['required', 'string'],
+            'questions.*.option_d'         => ['required', 'string'],
+            'questions.*.option_e'         => ['required', 'string'],
+            'questions.*.correct_option'   => ['required', Rule::in(['a','b','c','d','e'])],
         ];
     }
 }

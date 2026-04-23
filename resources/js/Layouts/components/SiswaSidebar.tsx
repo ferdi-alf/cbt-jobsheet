@@ -49,7 +49,7 @@ export default function SiswaSidebar({
                             onClick={onNavigate}
                             href="/dashboard"
                             icon={<LayoutDashboard className="h-4 w-4" />}
-                            activePathStartsWith="/siswa/dashboard"
+                            activePathStartsWith="/dashboard"
                         >
                             Dashboard
                         </SidebarItem>

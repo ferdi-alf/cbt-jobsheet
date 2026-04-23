@@ -136,8 +136,12 @@ class MateriResultsExportService
 
             $rowIndex = 2;
             foreach ($rows as $row) {
-                $correct = $row->answers->where('is_correct', true)->count();
-                $wrong = $row->answers->where('is_correct', false)->count();
+                // $correct = $row->answers->where('is_correct', true)->count();
+                // $wrong = $row->answers->where('is_correct', false)->count();
+
+                // Di exportTests()
+                $correct = $row->answers->filter(fn($ans) => (bool) $ans->is_correct)->count();
+                $wrong   = $row->answers->filter(fn($ans) => !(bool) $ans->is_correct)->count();
 
                 $sheet->fromArray([[
                     $row->student?->siswaProfile?->full_name ?: ($row->student?->name ?: '-'),
@@ -181,65 +185,65 @@ class MateriResultsExportService
     }
 
     private function styleWorksheet(\PhpOffice\PhpSpreadsheet\Worksheet\Worksheet $sheet, int $lastRow, string $lastColumn): void
-{
-    $headerRange = "A1:{$lastColumn}1";
-    $bodyRange = "A2:{$lastColumn}{$lastRow}";
-    $fullRange = "A1:{$lastColumn}{$lastRow}";
+    {
+        $headerRange = "A1:{$lastColumn}1";
+        $bodyRange = "A2:{$lastColumn}{$lastRow}";
+        $fullRange = "A1:{$lastColumn}{$lastRow}";
 
-    $sheet->freezePane('A2');
-    $sheet->setAutoFilter($headerRange);
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter($headerRange);
 
-    $sheet->getStyle($headerRange)->applyFromArray([
-        'font' => [
-            'bold' => true,
-            'color' => ['rgb' => 'FFFFFF'],
-            'size' => 11,
-        ],
-        'fill' => [
-            'fillType' => Fill::FILL_SOLID,
-            'startColor' => ['rgb' => '1F4E78'],
-        ],
-        'alignment' => [
-            'horizontal' => Alignment::HORIZONTAL_CENTER,
-            'vertical' => Alignment::VERTICAL_CENTER,
-        ],
-        'borders' => [
-            'allBorders' => [
-                'borderStyle' => Border::BORDER_THIN,
-                'color' => ['rgb' => 'D9E2F3'],
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+                'size' => 11,
             ],
-        ],
-    ]);
-
-    if ($lastRow >= 2) {
-        $sheet->getStyle($bodyRange)->applyFromArray([
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1F4E78'],
+            ],
             'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
                 'vertical' => Alignment::VERTICAL_CENTER,
             ],
             'borders' => [
                 'allBorders' => [
                     'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => 'E5E7EB'],
+                    'color' => ['rgb' => 'D9E2F3'],
                 ],
             ],
         ]);
 
-        for ($row = 2; $row <= $lastRow; $row++) {
-            if ($row % 2 === 0) {
-                $sheet->getStyle("A{$row}:{$lastColumn}{$row}")->applyFromArray([
-                    'fill' => [
-                        'fillType' => Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => 'F8FAFC'],
+        if ($lastRow >= 2) {
+            $sheet->getStyle($bodyRange)->applyFromArray([
+                'alignment' => [
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => 'E5E7EB'],
                     ],
-                ]);
+                ],
+            ]);
+
+            for ($row = 2; $row <= $lastRow; $row++) {
+                if ($row % 2 === 0) {
+                    $sheet->getStyle("A{$row}:{$lastColumn}{$row}")->applyFromArray([
+                        'fill' => [
+                            'fillType' => Fill::FILL_SOLID,
+                            'startColor' => ['rgb' => 'F8FAFC'],
+                        ],
+                    ]);
+                }
             }
         }
-    }
 
-    foreach (range('A', $lastColumn) as $col) {
-        $sheet->getColumnDimension($col)->setAutoSize(true);
-    }
+        foreach (range('A', $lastColumn) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
 
-    $sheet->getRowDimension(1)->setRowHeight(24);
-}
+        $sheet->getRowDimension(1)->setRowHeight(24);
+    }
 }

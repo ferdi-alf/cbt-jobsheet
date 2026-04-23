@@ -241,7 +241,7 @@ class TestSessionController extends Controller
             'materi:id,title,kelas_id,mapel_id',
             'materi.kelas:id,name',
             'materi.mapel:id,name',
-            'questions:id,test_id,question,option_a,option_b,option_c,option_d,option_e,correct_option',
+            'questions:id,test_id,question,image_path,option_a,option_b,option_c,option_d,option_e,correct_option',
         ]);
 
         $answers = $attempt->answers()
@@ -275,6 +275,7 @@ class TestSessionController extends Controller
                     'id' => $q->id,
                     'number' => $index + 1,
                     'question' => $q->question,
+                    'image_url'       => $q->image_url,
                     'selected_option' => $answers->get($q->id),
                     'options' => $options,
                 ];

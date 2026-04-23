@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class KelasUpdateRequest extends FormRequest
@@ -12,7 +13,7 @@ class KelasUpdateRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return$this->user()?->role === 'admin';
+        return $this->user()?->role === 'admin';
     }
 
     /**
@@ -22,7 +23,9 @@ class KelasUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $kelasId = $this->route('kelas')?->id ?? $this->route('kelas')?->id;
+        $kelasId = $this->route('kelas')?->id;
+
+        Log::info("Kelas ID for validation: " . ($kelasId ?? 'null'));
 
         return [
             'name' => [

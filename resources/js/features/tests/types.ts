@@ -95,6 +95,8 @@ export type TestDetailForEdit = {
     questions: Array<{
         id?: number;
         order?: number;
+        image_path?: string | null;
+        image_url?: string | null;
         question: string;
         option_a: string;
         option_b: string;
