@@ -3,6 +3,11 @@
 namespace Database\Seeders;
 
 use App\Models\Materi;
+use App\Models\PracticeChecklist;
+use App\Models\PracticeRule;
+use App\Models\PracticeSubmission;
+use App\Models\PracticeSubmissionItem;
+use App\Models\PracticeSubmissionPhoto;
 use App\Models\SiswaProfile;
 use App\Models\Test;
 use App\Models\TestAnswer;
@@ -12,6 +17,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class TSMDataSeeder extends Seeder
 {
@@ -38,9 +44,52 @@ class TSMDataSeeder extends Seeder
         15 => 'a',
     ];
 
+    /**
+     * Mapping order checklist => nama file foto di storage/app/seed_photos/
+     * Order 5, 6, 8 punya 2 foto
+     */
+    private array $photoMap = [
+        1  => ['1.jpeg'],
+        2  => ['2.jpeg'],
+        3  => ['3.jpeg'],
+        4  => ['4.jpeg'],
+        5  => ['5.jpeg', '5_1.jpeg'],
+        6  => ['6.jpeg', '6_1.jpeg'],
+        7  => ['7.jpeg'],
+        8  => ['8.jpeg', '8_1.jpeg'],
+        9  => ['9.jpeg'],
+        10 => ['10.jpeg'],
+    ];
+
     public function run(): void
     {
-        // Ambil creator dari materi id=1 yang sudah ada
+        // -------------------------------------------------------
+        // VALIDASI FOTO SEED SEBELUM MULAI
+        // -------------------------------------------------------
+        $this->command->info('Memvalidasi foto seed...');
+        $missingPhotos = [];
+        foreach ($this->photoMap as $order => $files) {
+            foreach ($files as $file) {
+                if (!Storage::disk('local')->exists("seed_photos/{$file}")) {
+                    $missingPhotos[] = "seed_photos/{$file} (checklist order {$order})";
+                }
+            }
+        }
+
+        if (!empty($missingPhotos)) {
+            $this->command->error('Foto berikut tidak ditemukan di storage/app/seed_photos/:');
+            foreach ($missingPhotos as $missing) {
+                $this->command->error("  - {$missing}");
+            }
+            $this->command->error('Seeder dibatalkan. Pastikan semua foto sudah ada sebelum run seeder.');
+            return;
+        }
+
+        $this->command->info('✅ Semua foto seed ditemukan.');
+
+        // -------------------------------------------------------
+        // RESOLVE CREATOR
+        // -------------------------------------------------------
         $materi    = Materi::find(1);
         $creatorId = $materi?->created_by
             ?? User::where('role', 'guru')->first()?->id
@@ -51,11 +100,11 @@ class TSMDataSeeder extends Seeder
             return;
         }
 
+        // -------------------------------------------------------
+        // 1. BUAT PRETEST & POSTTEST
+        // -------------------------------------------------------
         $this->command->info('Membuat Pretest & Posttest TSM...');
 
-        // -------------------------------------------------------
-        // 1. Buat Test: Pretest
-        // -------------------------------------------------------
         $pretest = Test::create([
             'materi_id'        => 1,
             'type'             => 'pretest',
@@ -67,9 +116,6 @@ class TSMDataSeeder extends Seeder
             'created_by'       => $creatorId,
         ]);
 
-        // -------------------------------------------------------
-        // 2. Buat Test: Posttest
-        // -------------------------------------------------------
         $posttest = Test::create([
             'materi_id'        => 1,
             'type'             => 'posttest',
@@ -84,10 +130,9 @@ class TSMDataSeeder extends Seeder
         $this->command->info("Pretest ID: {$pretest->id} | Posttest ID: {$posttest->id}");
 
         // -------------------------------------------------------
-        // 3. Buat Soal (sama untuk pretest & posttest)
+        // 2. BUAT SOAL PRETEST & POSTTEST
         // -------------------------------------------------------
-        $questionsData = $this->getQuestionsData();
-
+        $questionsData    = $this->getQuestionsData();
         $pretestQuestions  = [];
         $posttestQuestions = [];
 
@@ -122,16 +167,54 @@ class TSMDataSeeder extends Seeder
 
         $this->command->info('15 soal berhasil dibuat untuk masing-masing test.');
 
+        $this->command->info('Membuat Practice Rule & Checklists...');
+
+        $practiceRule = PracticeRule::create([
+            'materi_id'  => 1,
+            'title'      => 'Praktek Teknik Bisnis Sepeda Motor',
+            'deadline_at' => null,
+            'created_by' => $creatorId,
+        ]);
+
+        $checklistsData = [
+            ['title' => 'Periksa Jarak Tempuh Sepeda Motor', 'order' => 1],
+            ['title' => 'Periksa Bahan Bakar',               'order' => 2],
+            ['title' => 'Periksa Kelengkapan Body',          'order' => 3],
+            ['title' => 'Kelayakan Ban',                     'order' => 4],
+            ['title' => 'Gerak Bebas Kemudi',                'order' => 5],
+            ['title' => 'Kelayakan Sproket & Rantai',        'order' => 6],
+            ['title' => 'Fungsi Rem Depan & Belakang',       'order' => 7],
+            ['title' => 'Kondisi Oli Mesin',                 'order' => 8],
+            ['title' => 'Fungsi Kelistrikan & Lampu',        'order' => 9],
+            ['title' => 'Pemeriksaan Tegangan Baterai',      'order' => 10],
+        ];
+
+        // Simpan sebagai collection indexed by order untuk lookup mudah
+        $checklists = collect();
+        foreach ($checklistsData as $data) {
+            $checklist = PracticeChecklist::create([
+                'practice_rule_id' => $practiceRule->id,
+                'title'            => $data['title'],
+                'order'            => $data['order'],
+            ]);
+            $checklists->put($data['order'], $checklist);
+        }
+
+        $this->command->info("Practice Rule ID: {$practiceRule->id} | {$checklists->count()} checklists dibuat.");
+
         // -------------------------------------------------------
-        // 4. Buat 32 Siswa + Attempt + Answers
+        // 4. BUAT 32 SISWA + ATTEMPT + ANSWERS + SUBMISSIONS
         // -------------------------------------------------------
         $studentsData = $this->getStudentsData();
-        $this->command->info('Membuat 32 siswa beserta attempt & jawaban...');
+        $totalStudents = count($studentsData);
+        $this->command->info("Membuat {$totalStudents} siswa beserta attempt, jawaban, dan submission praktek...");
+
+        $submittedAt = Carbon::parse('2025-02-10 10:00:00');
 
         foreach ($studentsData as $i => $studentData) {
             $no = $i + 1;
 
-            // Buat User siswa
+            // --- BUAT USER SISWA ---
             $email = 'siswa_' . $studentData['nisn'] . '@smk.sch.id';
             $user  = User::create([
                 'name'     => $studentData['name'],
@@ -140,7 +223,7 @@ class TSMDataSeeder extends Seeder
                 'role'     => 'siswa',
             ]);
 
-            // Buat Siswa Profile
+            // --- BUAT SISWA PROFILE ---
             SiswaProfile::create([
                 'user_id'   => $user->id,
                 'full_name' => $studentData['name'],
@@ -154,7 +237,7 @@ class TSMDataSeeder extends Seeder
             $pretestCorrectCount = $this->targetScoreToCorrectCount($studentData['pretest_score']);
             $pretestActualScore  = $this->correctCountToScore($pretestCorrectCount);
             $pretestStarted      = Carbon::parse('2025-01-13 07:00:00')->addMinutes(rand(0, 10));
-            $pretestDuration     = rand(1800, 3200); // 30-53 menit
+            $pretestDuration     = rand(1800, 3200);
 
             $pretestAttempt = TestAttempt::create([
                 'test_id'          => $pretest->id,
@@ -186,55 +269,89 @@ class TSMDataSeeder extends Seeder
 
             $this->createAnswers($posttestAttempt, $posttestQuestions, $posttestCorrectCount);
 
+            // --- PRACTICE SUBMISSION ---
+            $submission = PracticeSubmission::create([
+                'materi_id'       => 1,
+                'student_user_id' => $user->id,
+                'status'          => 'submitted',
+                'is_late'         => false,
+                'submitted_at'    => $submittedAt->copy()->addMinutes(rand(0, 30)),
+            ]);
+
+            // --- SUBMISSION ITEMS + FOTO PER CHECKLIST ---
+            foreach ($checklists as $order => $checklist) {
+                $item = PracticeSubmissionItem::create([
+                    'submission_id' => $submission->id,
+                    'checklist_id'  => $checklist->id,
+                    'note'          => null,
+                ]);
+
+                $photoFiles = $this->photoMap[$order];
+
+                foreach ($photoFiles as $photoFile) {
+                    $src  = "seed_photos/{$photoFile}";
+                    $dest = "private/practice-photos/{$submission->id}/{$item->id}/{$photoFile}";
+
+                    Storage::disk('local')->copy($src, $dest);
+
+                    PracticeSubmissionPhoto::create([
+                        'submission_item_id' => $item->id,
+                        'photo_path'         => $dest,
+                    ]);
+                }
+            }
+
             $this->command->line(
-                "  [{$no}/32] {$studentData['name']} | "
+                "  [{$no}/{$totalStudents}] {$studentData['name']} | "
                 . "Pretest: {$pretestActualScore} (target {$studentData['pretest_score']}) | "
-                . "Posttest: {$posttestActualScore} (target {$studentData['posttest_score']})"
+                . "Posttest: {$posttestActualScore} (target {$studentData['posttest_score']}) | "
+                . "Submission ID: {$submission->id}"
             );
         }
 
+        $this->command->info('');
         $this->command->info('✅ TSMDataSeeder selesai!');
+        $this->command->info("   - {$totalStudents} siswa dibuat");
+        $this->command->info('   - Masing-masing punya 1 submission dengan 10 checklist');
+        $this->command->info('   - Total foto ter-copy: ' . ($totalStudents * 13) . ' file'); // 10 checklist + 3 checklist dengan 2 foto = 13 foto per siswa
+        $this->command->info('');
+        $this->command->info('💡 Langkah deploy ke production:');
+        $this->command->info('   1. Export DB local → import ke production');
+        $this->command->info('   2. Upload folder storage/app/private/practice-photos/ ke server production');
     }
 
-    /**
-     * Hitung jumlah jawaban benar dari target score (0-100) dengan 15 soal.
-     */
+    // -------------------------------------------------------
+    // HELPER METHODS
+    // -------------------------------------------------------
+
     private function targetScoreToCorrectCount(int $targetScore): int
     {
         return (int) round($targetScore * 15 / 100);
     }
 
-    /**
-     * Hitung score (0-100) dari jumlah jawaban benar dengan 15 soal.
-     */
     private function correctCountToScore(int $correctCount): int
     {
         return (int) round($correctCount * 100 / 15);
     }
 
-    /**
-     * Buat TestAnswer untuk satu attempt.
-     * $correctCount soal dijawab benar, sisanya salah (opsi salah dipilih secara acak).
-     */
     private function createAnswers(TestAttempt $attempt, array $questions, int $correctCount): void
     {
         $total = count($questions);
 
-        // Tentukan indeks mana yang dijawab BENAR (acak)
-        $allIndices    = range(0, $total - 1);
+        $allIndices     = range(0, $total - 1);
         shuffle($allIndices);
-        $correctIndices = array_flip(array_slice($allIndices, 0, $correctCount)); // indeks yang benar
+        $correctIndices = array_flip(array_slice($allIndices, 0, $correctCount));
 
         foreach ($questions as $i => $question) {
-            $questionNo     = $question->order; // pakai order, bukan indeks array
+            $questionNo     = $question->order;
             $correctOption  = $this->correctAnswers[$questionNo];
             $isCorrect      = isset($correctIndices[$i]);
 
             if ($isCorrect) {
                 $selectedOption = $correctOption;
             } else {
-                $allOptions   = ['a', 'b', 'c', 'd', 'e'];
-                $wrongOptions = array_values(array_filter($allOptions, fn($o) => $o !== $correctOption));
+                $allOptions     = ['a', 'b', 'c', 'd', 'e'];
+                $wrongOptions   = array_values(array_filter($allOptions, fn ($o) => $o !== $correctOption));
                 $selectedOption = $wrongOptions[array_rand($wrongOptions)];
             }
 
@@ -253,7 +370,6 @@ class TSMDataSeeder extends Seeder
     private function getQuestionsData(): array
     {
         return [
-            // Soal 1
             [
                 'question' => 'Pada dibawah ini yang merupakan komponen Rem Tromol ialah....',
                 'option_a' => 'Piringan cakram',
@@ -262,7 +378,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Panel Rem',
                 'option_e' => 'Brake caliper',
             ],
-            // Soal 2
             [
                 'question' => "Perhatikan keterangan berikut:\n"
                     . "1. Sebagai mengurangi kecepatan laju kendaraan.\n"
@@ -276,7 +391,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => '3',
                 'option_e' => '4',
             ],
-            // Soal 3
             [
                 'question' => 'Suatu komponen berbentuk cairan berfungsi sebagai penyuplai tekanan yg dimampatkan piston caliper bekerja dengan sempurna....',
                 'option_a' => 'Minyak Rem/Fluida',
@@ -285,7 +399,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Brake shoe',
                 'option_e' => 'Brake caliper',
             ],
-            // Soal 4 (ada gambar — siswa isi sendiri)
             [
                 'question' => 'Pada Gambar dibawah merupakan pembongkaran komponen ialah....',
                 'option_a' => 'Pembersihan rem',
@@ -294,7 +407,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Pencucian rem',
                 'option_e' => 'Penglihatan rem',
             ],
-            // Soal 5
             [
                 'question' => 'Apa kegunaan oli shock absorber....',
                 'option_a' => 'Melumasi komponen Transmisi',
@@ -303,7 +415,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Meredam kejutan pada shock absorber',
                 'option_e' => 'Mendinginkan mesin kendaraan',
             ],
-            // Soal 6
             [
                 'question' => "Perhatikan bagian sistem berikut:\n"
                     . "1. Sistem Mekanisme katup\n"
@@ -317,7 +428,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => '3 & 4',
                 'option_e' => '2 & 3',
             ],
-            // Soal 7 (ada gambar)
             [
                 'question' => 'Pengukuran komponen dibawah ini merupakan…..',
                 'option_a' => 'Pengukuran Kelep/Valve',
@@ -326,7 +436,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Pengukuran spring coil',
                 'option_e' => 'Pengukuran celah busi',
             ],
-            // Soal 8 (ada gambar)
             [
                 'question' => 'Pada Gambar dibawah ini merupakan nama komponen…..',
                 'option_a' => 'Baterai',
@@ -335,7 +444,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Spull/coil lighting',
                 'option_e' => 'Regulator/kiprok',
             ],
-            // Soal 9 (ada gambar)
             [
                 'question' => 'Pada Gambar dibawah ini merupakan nama komponen….. (Regulator)',
                 'option_a' => 'Baterai',
@@ -344,7 +452,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Regulator/kiprok',
                 'option_e' => 'Spull/coil lighting',
             ],
-            // Soal 10 (ada gambar)
             [
                 'question' => 'Pada Gambar dibawah ini merupakan nama komponen….. (Baterai)',
                 'option_a' => 'Baterai',
@@ -353,7 +460,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Spull/coil lighting',
                 'option_e' => 'Regulator/kiprok',
             ],
-            // Soal 11
             [
                 'question' => 'Yang mana alat pengukuran pada baterai/accu basah…..',
                 'option_a' => 'Jangka sorong',
@@ -362,7 +468,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Compression tester',
                 'option_e' => 'Multimeter',
             ],
-            // Soal 12
             [
                 'question' => 'Suara komponen apa untuk memperingatkan atau memberi sinyal kepada orang atau kendaraan di sekitar Anda....',
                 'option_a' => 'Lampu sein',
@@ -371,7 +476,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Lampu rem',
                 'option_e' => 'Lampu hazard',
             ],
-            // Soal 13
             [
                 'question' => 'Fungsi Lampu Sein merupakan ....',
                 'option_a' => 'Untuk memberi tanda kendaraan berbelok, berhenti dan mendahului objek lain',
@@ -380,7 +484,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => 'Untuk menindak lanjut kendaraan',
                 'option_e' => 'Untuk memberi tanda bahaya darurat',
             ],
-            // Soal 14 (ada gambar fuse biru)
             [
                 'question' => 'Perhatikan pada sekring/FUSE pada warna biru tersebut, merupakan sekring berapa ampere....',
                 'option_a' => '10A',
@@ -389,7 +492,6 @@ class TSMDataSeeder extends Seeder
                 'option_d' => '25A',
                 'option_e' => '30A',
             ],
-            // Soal 15
             [
                 'question' => 'Pada Sistem Injeksi ada 3 (Tiga) Bagian Utama, yang mana paling benar…..',
                 'option_a' => 'Actuator, Control, dan Sensor',
@@ -402,9 +504,7 @@ class TSMDataSeeder extends Seeder
     }
 
     // -------------------------------------------------------
-    // DATA 32 SISWA (dari gambar sumatif akhir semester)
-    // pretest_score  = NILAI_NON_TES
-    // posttest_score = NILAI_TES
+    // DATA 32 SISWA
     // -------------------------------------------------------
     private function getStudentsData(): array
     {
