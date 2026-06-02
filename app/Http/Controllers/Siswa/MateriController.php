@@ -7,6 +7,7 @@ use App\Http\Requests\Siswa\PracticePhotoUploadRequest;
 use App\Http\Requests\Siswa\PracticeSubmitRequest;
 use App\Models\Materi;
 use App\Models\PracticeSubmission;
+use App\Models\PracticeSubmissionApdPhoto;
 use App\Models\PracticeSubmissionItem;
 use App\Models\PracticeSubmissionPhoto;
 use App\Models\Test;
@@ -129,19 +130,19 @@ class MateriController extends Controller
     {
         $user = $request->user();
         abort_unless($user, 403);
-
         $this->authorizeStudentMateri($user, $materi);
 
         $materi->loadMissing([
             'kelas:id,name',
             'mapel:id,name',
             'practiceRule:id,materi_id,title,deadline_at',
-            'practiceRule.checklists:id,practice_rule_id,title,order',
+            'practiceRule.checklists:id,practice_rule_id,title,standar,keterangan,order',
         ]);
 
         $submission = PracticeSubmission::query()
             ->with([
-                'items:id,submission_id,checklist_id,note',
+                'apdPhotos:id,submission_id,photo_path,created_at',
+                'items:id,submission_id,checklist_id,note,hasil,keterangan',
                 'items.photos:id,submission_item_id,photo_path,created_at',
             ])
             ->where('materi_id', $materi->id)
@@ -153,47 +154,176 @@ class MateriController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'id' => $materi->id,
-                'title' => $materi->title,
-                'kelas' => $materi->kelas?->name,
-                'mapel' => $materi->mapel?->name,
-                'praktik_text' => $materi->praktik_text,
+                'id'                  => $materi->id,
+                'title'               => $materi->title,
+                'kelas'               => $materi->kelas?->name,
+                'mapel'               => $materi->mapel?->name,
+                'elemen'              => $materi->elemen,
+                'tujuan_pembelajaran' => $materi->tujuan_pembelajaran,
+                'praktik_text'        => $materi->praktik_text,
                 'pdf' => [
-                    'view_url' => route('api.siswa.materis.pdf', ['materi' => $materi->id]),
+                    'view_url'     => route('api.siswa.materis.pdf', ['materi' => $materi->id]),
                     'download_url' => route('api.siswa.materis.download', ['materi' => $materi->id]),
                 ],
                 'practice' => [
-                    'rule_id' => $materi->practiceRule?->id,
-                    'title' => $materi->practiceRule?->title,
-                    'description' => $materi->praktik_text,
-                    'deadline_at' => optional($materi->practiceRule?->deadline_at)->toDateTimeString(),
-                    'status' => $submission?->status ?? 'not_started',
-                    'is_late' => (bool) ($submission?->is_late ?? false),
-                    'submitted_at' => optional($submission?->submitted_at)->toDateTimeString(),
-                    'graded_at' => optional($submission?->graded_at)->toDateTimeString(),
-                    'total_score' => $submission?->total_score,
-                    'feedback' => $submission?->feedback,
+                    'rule_id'        => $materi->practiceRule?->id,
+                    'title'          => $materi->practiceRule?->title,
+                    'description'    => $materi->praktik_text,
+                    'k3_alat_bahan'  => $materi->k3_alat_bahan,
+                    'deadline_at'    => optional($materi->practiceRule?->deadline_at)->toDateTimeString(),
+                    'status'         => $submission?->status ?? 'not_started',
+                    'is_late'        => (bool) ($submission?->is_late ?? false),
+                    'submitted_at'   => optional($submission?->submitted_at)->toDateTimeString(),
+                    'graded_at'      => optional($submission?->graded_at)->toDateTimeString(),
+                    'total_score'    => $submission?->total_score,
+                    'feedback'       => $submission?->feedback,
+                    'apd_photos'     => ($submission?->apdPhotos ?? collect())->map(fn ($p) => [
+                        'id'          => $p->id,
+                        'view_url'    => route('api.practice-apd-photos.show', ['photo' => $p->id]),
+                        'uploaded_at' => optional($p->created_at)->toDateTimeString(),
+                    ])->values(),
                     'checklists' => $materi->practiceRule?->checklists->map(function ($checklist) use ($itemsByChecklist) {
                         $item = $itemsByChecklist->get($checklist->id);
-
                         return [
-                            'id' => $checklist->id,
-                            'order' => (int) $checklist->order,
-                            'title' => $checklist->title,
-                            'note' => $item?->note,
-                            'photos' => ($item?->photos ?? collect())->map(function ($photo) {
-                                return [
-                                    'id' => $photo->id,
-                                    'view_url' => route('api.practice-photos.show', ['photo' => $photo->id]),
-                                    'uploaded_at' => optional($photo->created_at)->toDateTimeString(),
-                                ];
-                            })->values(),
+                            'id'               => $checklist->id,
+                            'order'            => (int) $checklist->order,
+                            'title'            => $checklist->title,
+                            'standar'          => $checklist->standar,
+                            'rule_keterangan'  => $checklist->keterangan,
+                            'note'             => $item?->note,
+                            'hasil'            => $item?->hasil,
+                            'keterangan'       => $item?->keterangan,
+                            'photos'           => ($item?->photos ?? collect())->map(fn ($photo) => [
+                                'id'          => $photo->id,
+                                'view_url'    => route('api.practice-photos.show', ['photo' => $photo->id]),
+                                'uploaded_at' => optional($photo->created_at)->toDateTimeString(),
+                            ])->values(),
                         ];
                     })->values() ?? [],
                 ],
             ],
             'error' => null,
         ]);
+    }
+
+
+    public function storeApdPhoto(Request $request, Materi $materi)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->isSiswa(), 403);
+        $this->authorizeStudentMateri($user, $materi);
+
+        $request->validate(['photo' => ['required', 'image', 'max:5120']]);
+
+        $materi->loadMissing('practiceRule');
+        abort_if(!$materi->practiceRule, 422, 'Praktek untuk materi ini belum tersedia.');
+
+        $submission = PracticeSubmission::firstOrCreate(
+            ['materi_id' => $materi->id, 'student_user_id' => $user->id],
+            ['status' => 'draft', 'is_late' => false],
+        );
+
+        abort_if(in_array($submission->status, ['submitted', 'graded'], true), 422, 'Submission sudah dikunci.');
+
+        $path = $request->file('photo')->store(
+            "practice-apd/{$submission->id}",
+            'local',
+        );
+
+        $photo = $submission->apdPhotos()->create(['photo_path' => $path]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id'          => $photo->id,
+                'view_url'    => route('api.practice-apd-photos.show', ['photo' => $photo->id]),
+                'uploaded_at' => optional($photo->created_at)->toDateTimeString(),
+            ],
+            'error' => null,
+        ]);
+    }
+
+    public function destroyApdPhoto(Request $request, PracticeSubmissionApdPhoto $photo)
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $photo->loadMissing('submission');
+        abort_if((int) $photo->submission->student_user_id !== (int) $user->id, 403);
+        abort_if($photo->submission->status !== 'draft', 422, 'Foto tidak bisa dihapus setelah submission dikirim.');
+
+        Storage::disk('local')->delete($photo->photo_path);
+        $photo->delete();
+
+        return response()->json(['success' => true, 'data' => true, 'error' => null]);
+    }
+
+    public function viewApdPhoto(Request $request, PracticeSubmissionApdPhoto $photo)
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $photo->loadMissing('submission.materi:id,kelas_id,mapel_id');
+        $submission = $photo->submission;
+        $materi     = $submission?->materi;
+
+        $allowed = match (true) {
+            $user->isAdmin() => true,
+            $user->isGuru()  => (function () use ($user, $materi) {
+                $user->loadMissing('guruProfile:user_id,kelas_id,mapel_id');
+                $gp = $user->guruProfile;
+                return $gp
+                    && (int) $gp->kelas_id === (int) $materi?->kelas_id
+                    && (int) $gp->mapel_id === (int) $materi?->mapel_id;
+            })(),
+            $user->isSiswa() => (int) $submission->student_user_id === (int) $user->id,
+            default          => false,
+        };
+
+        abort_if(!$allowed, 403);
+        abort_if(!$photo->photo_path || !Storage::disk('local')->exists($photo->photo_path), 404);
+
+        return response()->file(
+            Storage::disk('local')->path($photo->photo_path),
+            ['Cache-Control' => 'private, max-age=60'],
+        );
+    }
+
+
+    public function updateItem(Request $request, Materi $materi, int $checklistId)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->isSiswa(), 403);
+        $this->authorizeStudentMateri($user, $materi);
+
+        $data = $request->validate([
+            'hasil'       => ['nullable', 'string', 'max:500'],
+            'keterangan'  => ['nullable', 'string'],
+        ]);
+
+        $materi->loadMissing('practiceRule.checklists:id,practice_rule_id');
+        abort_if(!$materi->practiceRule, 422, 'Praktek belum tersedia.');
+
+        $validChecklist = $materi->practiceRule->checklists->firstWhere('id', $checklistId);
+        abort_if(!$validChecklist, 422, 'Checklist tidak valid.');
+
+        $submission = PracticeSubmission::firstOrCreate(
+            ['materi_id' => $materi->id, 'student_user_id' => $user->id],
+            ['status' => 'draft', 'is_late' => false],
+        );
+
+        abort_if(in_array($submission->status, ['submitted', 'graded'], true), 422, 'Submission sudah dikunci.');
+
+        $item = PracticeSubmissionItem::firstOrCreate(
+            ['submission_id' => $submission->id, 'checklist_id' => $checklistId],
+            ['note' => null],
+        );
+
+        $item->hasil      = filled($data['hasil'] ?? null)      ? $data['hasil']      : null;
+        $item->keterangan = filled($data['keterangan'] ?? null) ? $data['keterangan'] : null;
+        $item->save();
+
+        return response()->json(['success' => true, 'data' => true, 'error' => null]);
     }
 
     public function pdf(Request $request, Materi $materi)
@@ -312,7 +442,10 @@ class MateriController extends Controller
             $photo->delete();
 
             $item->loadCount('photos');
-            if ((int) $item->photos_count === 0 && blank($item->note)) {
+            if ((int) $item->photos_count === 0
+                && blank($item->note)
+                && blank($item->hasil)
+                && blank($item->keterangan)) {
                 $item->delete();
             }
         });

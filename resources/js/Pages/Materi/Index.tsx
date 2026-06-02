@@ -38,7 +38,13 @@ export default function MateriIndex() {
                 </div>
             ),
         },
-        { key: "mapel", label: "Mapel" },
+        {
+            key: "mapel",
+            label: "Mapel - Fase",
+            render: (_v: any, row: MateriRow) => (
+                <span>{`${row.mapel} - ${row.fase}`}</span>
+            ),
+        },
         { key: "kelas", label: "Kelas" },
         {
             key: "created_by",
@@ -148,17 +154,55 @@ export default function MateriIndex() {
                     }}
                     striped
                     expandable={{
-                        condition: (row) => !!row.praktik_text?.trim(),
+                        condition: (row) =>
+                            !!(
+                                row.praktik_text?.trim() ||
+                                row.k3_alat_bahan?.trim() ||
+                                row.elemen?.trim() ||
+                                row.tujuan_pembelajaran?.trim()
+                            ),
                         render: (_sub, row) => (
-                            <div>
-                                <div className="rounded-md border p-3 bg-background">
-                                    <div className="text-sm font-semibold">
-                                        Deskripsi Praktik
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-1">
+                                {row.elemen?.trim() && (
+                                    <div className="rounded-md border p-3 bg-background">
+                                        <div className="text-sm font-semibold mb-1">
+                                            Elemen
+                                        </div>
+                                        <div className="text-sm text-muted-foreground">
+                                            {row.elemen}
+                                        </div>
                                     </div>
-                                    <div className="text-sm text-muted-foreground">
-                                        {row.praktik_text}
+                                )}
+                                {row.tujuan_pembelajaran?.trim() && (
+                                    <div className="rounded-md border p-3 bg-background">
+                                        <div className="text-sm font-semibold mb-1">
+                                            Tujuan Pembelajaran
+                                        </div>
+                                        <div className="text-sm text-muted-foreground whitespace-pre-line">
+                                            {row.tujuan_pembelajaran}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
+                                {row.praktik_text?.trim() && (
+                                    <div className="rounded-md border p-3 bg-background">
+                                        <div className="text-sm font-semibold mb-1">
+                                            Deskripsi Praktik
+                                        </div>
+                                        <div className="text-sm text-muted-foreground whitespace-pre-line">
+                                            {row.praktik_text}
+                                        </div>
+                                    </div>
+                                )}
+                                {row.k3_alat_bahan?.trim() && (
+                                    <div className="rounded-md border p-3 bg-background">
+                                        <div className="text-sm font-semibold mb-1">
+                                            K3 dan APD
+                                        </div>
+                                        <div className="text-sm text-muted-foreground whitespace-pre-line">
+                                            {row.k3_alat_bahan}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ),
                     }}

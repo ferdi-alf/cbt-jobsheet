@@ -19,11 +19,45 @@ function MateriDrawerContent({ materi }: { materi: MateriDetail }) {
 
     return (
         <div className="space-y-4">
+            {(materi.elemen?.trim() || materi.tujuan_pembelajaran?.trim()) && (
+                <div className="rounded-xl border p-4 space-y-3">
+                    {materi.elemen?.trim() && (
+                        <div>
+                            <div className="mb-1 font-semibold text-sm">
+                                Elemen
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                                {materi.elemen}
+                            </div>
+                        </div>
+                    )}
+                    {materi.tujuan_pembelajaran?.trim() && (
+                        <div>
+                            <div className="mb-1 font-semibold text-sm">
+                                Tujuan Pembelajaran
+                            </div>
+                            <div className="whitespace-pre-line text-sm text-muted-foreground">
+                                {materi.tujuan_pembelajaran}
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
             {materi.praktik_text?.trim() && (
                 <div className="rounded-xl border p-4">
                     <div className="mb-1 font-semibold">Praktik</div>
                     <div className="whitespace-pre-line text-sm text-muted-foreground">
                         {materi.praktik_text}
+                    </div>
+                </div>
+            )}
+
+            {materi.k3_alat_bahan?.trim() && (
+                <div className="rounded-xl border p-4">
+                    <div className="mb-1 font-semibold">K3 dan APD</div>
+                    <div className="whitespace-pre-line text-sm text-muted-foreground">
+                        {materi.k3_alat_bahan}
                     </div>
                 </div>
             )}

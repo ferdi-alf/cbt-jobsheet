@@ -16,6 +16,7 @@ export default function MapelsIndex() {
 
     const columns = [
         { key: "name", label: "Nama Mapel" },
+        { key: "fase", label: "Fase" },
         { key: "total_guru", label: "Total Guru", align: "center" as const },
         {
             key: "total_materi",
@@ -28,7 +29,7 @@ export default function MapelsIndex() {
     const actions = (row: MapelRow) => (
         <>
             <MapelFormDialog
-                initial={{ id: row.id, name: row.name }}
+                initial={{ id: row.id, name: row.name, fase: row.fase }}
                 onDone={refetch}
                 trigger={
                     <Button variant="ghost" size="icon" aria-label="Edit">

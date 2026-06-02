@@ -27,7 +27,9 @@ class PracticeRuleUpdateRequest extends FormRequest
             'title' => ['sometimes', 'string', 'max:255'],
             'deadline_at' => ['sometimes', 'nullable', 'date'],
             'checklists' => ['sometimes', 'array', 'min:1'],
-            'checklists.*.title' => ['required_with:checklists', 'string', 'max:255'],
+            'checklists.*.title'       => ['required', 'string', 'max:255'],
+            'checklists.*.standar'     => ['nullable', 'string', 'max:255'],
+            'checklists.*.keterangan'  => ['nullable', 'string'],
         ];
     }
 }

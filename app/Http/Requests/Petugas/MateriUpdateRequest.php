@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests\Petugas;
 
+use App\Models\Kelas;
+use App\Models\Mapel;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class MateriUpdateRequest extends FormRequest
 {
@@ -13,13 +16,15 @@ class MateriUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-        $user = $this->user();
-        $isGuru = $user?->role === 'guru';
+        $isGuru = $this->user()?->role === 'guru';
 
         $base = [
-            'title' => ['sometimes', 'string', 'max:255'],
-            'praktik_text' => ['sometimes', 'nullable', 'string'],
-            'pdf' => ['sometimes', 'file', 'mimes:pdf', 'max:10240'],
+            'title'          => ['sometimes', 'string', 'max:255'],
+            'praktik_text'   => ['sometimes', 'nullable', 'string'],
+            'k3_alat_bahan'      => ['sometimes', 'nullable', 'string'],
+            'elemen'             => ['sometimes', 'nullable', 'string'],
+            'tujuan_pembelajaran' => ['sometimes', 'nullable', 'string'],
+            'pdf'            => ['sometimes', 'file', 'mimes:pdf', 'max:10240'],
         ];
 
         if ($isGuru) {
@@ -30,5 +35,37 @@ class MateriUpdateRequest extends FormRequest
             'kelas_id' => ['sometimes', 'exists:kelas,id'],
             'mapel_id' => ['sometimes', 'exists:mapels,id'],
         ]);
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        if ($this->user()?->role === 'guru') return;
+
+        $validator->after(function (Validator $v) {
+            $this->validateFaseVsTingkat($v);
+        });
+    }
+
+    private function validateFaseVsTingkat(Validator $v): void
+    {
+        $kelasId = $this->input('kelas_id');
+        $mapelId = $this->input('mapel_id');
+
+        if (!$kelasId || !$mapelId) return;
+
+        $kelas = Kelas::find($kelasId, ['id', 'tingkat']);
+        $mapel = Mapel::find($mapelId, ['id', 'fase']);
+
+        if (!$kelas || !$mapel || !$kelas->tingkat || !$mapel->fase) return;
+
+        $expectedFase = $kelas->tingkat === 'X' ? 'E' : 'F';
+        $mapelFases   = explode(',', $mapel->fase);
+
+        if (!in_array($expectedFase, $mapelFases, true)) {
+            $v->errors()->add(
+                'mapel_id',
+                "Mapel ini adalah Fase {$mapel->fase}, tidak sesuai dengan tingkat kelas {$kelas->tingkat} (Fase {$expectedFase})."
+            );
+        }
     }
 }

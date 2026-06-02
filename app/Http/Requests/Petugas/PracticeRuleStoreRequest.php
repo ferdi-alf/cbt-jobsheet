@@ -20,7 +20,9 @@ class PracticeRuleStoreRequest extends FormRequest
             'deadline_at' => ['nullable', 'date'],
 
             'checklists' => ['required', 'array', 'min:1'],
-            'checklists.*.title' => ['required', 'string', 'max:255'],
+            'checklists.*.title'       => ['required', 'string', 'max:255'],
+            'checklists.*.standar'     => ['nullable', 'string', 'max:255'],
+            'checklists.*.keterangan'  => ['nullable', 'string'],
         ];
     }
 }

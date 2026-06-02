@@ -1,7 +1,12 @@
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useProgress } from "@/Components/progress/ProgressProvider";
-import { createKelas, updateKelas, deleteKelas } from "../api/kelas.api";
+import {
+    createKelas,
+    updateKelas,
+    deleteKelas,
+    type KelasPayload,
+} from "../api/kelas.api";
 
 export function useKelasMutations(onSuccess?: () => void) {
     const qc = useQueryClient();
@@ -14,7 +19,7 @@ export function useKelasMutations(onSuccess?: () => void) {
         await qc.invalidateQueries({ queryKey: ["kelas-students"] });
     };
 
-    const create = async (payload: { name: string }) => {
+    const create = async (payload: KelasPayload) => {
         try {
             start("Membuat kelas...");
             const res = await createKelas(payload);
@@ -30,7 +35,7 @@ export function useKelasMutations(onSuccess?: () => void) {
         }
     };
 
-    const update = async (id: number, payload: { name: string }) => {
+    const update = async (id: number, payload: KelasPayload) => {
         try {
             start("Mengupdate kelas...");
             await updateKelas(id, payload);

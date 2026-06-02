@@ -1,6 +1,9 @@
+export type MapelFase = "E" | "F" | "E,F";
+
 export type MapelRow = {
     id: number;
     name: string;
+    fase: MapelFase | null;
     total_guru?: number;
     total_materi?: number;
     created_at?: string;

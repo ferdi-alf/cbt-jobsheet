@@ -25,6 +25,11 @@ export type PracticeResultDetail = {
     graded_at: string | null;
     total_score: number | null;
     feedback?: string | null;
+    apd_photos: Array<{
+        id: number;
+        view_url: string;
+        uploaded_at?: string | null;
+    }>;
     student: {
         id: number;
         full_name: string;
@@ -33,11 +38,11 @@ export type PracticeResultDetail = {
     materi: {
         id: number;
         title: string;
+        elemen?: string | null;
+        tujuan_pembelajaran?: string | null;
+        k3_alat_bahan?: string | null;
     };
-    grader?: {
-        id: number;
-        name: string;
-    } | null;
+    grader?: { id: number; name: string } | null;
     practice: {
         title?: string | null;
         description?: string | null;
@@ -46,7 +51,12 @@ export type PracticeResultDetail = {
             id: number;
             order: number;
             title: string;
+            standar?: string | null;
+            rule_keterangan?: string | null;
             note?: string | null;
+            score?: number | null;
+            hasil?: string | null;
+            keterangan?: string | null;
             photos: Array<{
                 id: number;
                 view_url: string;
@@ -57,10 +67,10 @@ export type PracticeResultDetail = {
 };
 
 export type GradePracticePayload = {
-    total_score: number;
     feedback?: string | null;
     notes: Array<{
         checklist_id: number;
+        score: number;
         note?: string | null;
     }>;
 };

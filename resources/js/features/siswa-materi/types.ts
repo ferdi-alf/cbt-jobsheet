@@ -17,9 +17,16 @@ export type SiswaMateriListItem = {
     } | null;
 };
 
+export type ApdPhoto = {
+    id: number | string;
+    view_url: string;
+    uploaded_at?: string | null;
+    isUploading?: boolean;
+};
+
 export type PracticePhoto = {
     isUploading: boolean;
-    id: number;
+    id: number | string;
     view_url: string;
     uploaded_at?: string | null;
 };
@@ -28,7 +35,11 @@ export type PracticeChecklist = {
     id: number;
     order: number;
     title: string;
+    standar?: string | null;
+    rule_keterangan?: string | null;
     note?: string | null;
+    hasil?: string | null;
+    keterangan?: string | null;
     photos: PracticePhoto[];
 };
 
@@ -37,15 +48,15 @@ export type SiswaMateriDetail = {
     title: string;
     kelas?: string | null;
     mapel?: string | null;
+    elemen?: string | null;
+    tujuan_pembelajaran?: string | null;
     praktik_text?: string | null;
-    pdf: {
-        view_url: string;
-        download_url?: string | null;
-    };
+    pdf: { view_url: string; download_url?: string | null };
     practice: {
         rule_id?: number | null;
         title?: string | null;
         description?: string | null;
+        k3_alat_bahan?: string | null;
         deadline_at?: string | null;
         status: "not_started" | "draft" | "submitted" | "graded";
         is_late?: boolean;
@@ -53,8 +64,15 @@ export type SiswaMateriDetail = {
         graded_at?: string | null;
         total_score?: number | null;
         feedback?: string | null;
+        apd_photos: ApdPhoto[]; // ← baru
         checklists: PracticeChecklist[];
     };
+};
+
+export type UploadedApdPhoto = {
+    id: number;
+    view_url: string;
+    uploaded_at?: string | null;
 };
 
 export type UploadedPracticePhoto = {

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Kelas extends Model
@@ -10,8 +11,17 @@ class Kelas extends Model
     protected $table = 'kelas';
 
     protected $fillable = [
-        'name'
+        'name',
+        'jurusan_id',
+        'tingkat',
+        'tahun_ajaran',
     ];
+
+    // ── Relations ────────────────────────────────────────────────────────────
+    public function jurusan(): BelongsTo
+    {
+        return $this->belongsTo(Jurusan::class, 'jurusan_id');
+    }
 
     public function siswaProfiles(): HasMany
     {
@@ -27,5 +37,4 @@ class Kelas extends Model
     {
         return $this->hasMany(Materi::class, 'kelas_id');
     }
-
 }

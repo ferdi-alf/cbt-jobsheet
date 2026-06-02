@@ -6,23 +6,19 @@ import type {
     MaterialRow,
 } from "../types";
 
-export async function listKelas(params: {
-    page: number;
-    limit: number;
-    search?: string;
-}) {
-    const qs = new URLSearchParams();
-    qs.set("page", String(params.page));
-    qs.set("limit", String(params.limit));
-    if (params.search) qs.set("search", params.search);
-    return api.get<{ success: true }>(`/api/kelas?${qs.toString()}`);
-}
+export type KelasPayload = {
+    name: string;
+    jurusan_id: number;
+    tingkat: "X" | "XI" | "XII";
+    tahun_ajaran: string;
+};
 
-export async function createKelas(payload: { name: string }) {
+export async function createKelas(payload: KelasPayload) {
     return api.post<{ id: number }>("/api/kelas", payload);
 }
 
-export async function updateKelas(id: number, payload: { name: string }) {
+export async function updateKelas(id: number, payload: KelasPayload) {
+    console.log("updateKelas called", id, JSON.stringify(payload));
     return api.put<boolean>(`/api/kelas/${id}`, payload);
 }
 

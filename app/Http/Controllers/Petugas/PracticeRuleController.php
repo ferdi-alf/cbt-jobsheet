@@ -135,9 +135,15 @@ class PracticeRuleController extends Controller
                     'materi_id'   => (int) $practice_rule->materi_id,
                     'title'       => $practice_rule->title,
                     'deadline_at' => optional($practice_rule->deadline_at)->toDateTimeString(),
-                    'checklists'  => $practice_rule->checklists
+                    'checklists' => $practice_rule->checklists
                         ->sortBy('order')->values()
-                        ->map(fn ($c) => ['id' => $c->id, 'title' => $c->title, 'order' => (int) $c->order]),
+                        ->map(fn ($c) => [
+                            'id'          => $c->id,
+                            'title'       => $c->title,
+                            'standar'     => $c->standar,
+                            'keterangan'  => $c->keterangan,
+                            'order'       => (int) $c->order,
+                        ]),
                     'materi_label' => [
                         'title' => $practice_rule->materi?->title,
                         'kelas' => $practice_rule->materi?->kelas?->name,
@@ -194,7 +200,12 @@ class PracticeRuleController extends Controller
 
             $r->checklists()->createMany(
                 collect($data['checklists'])->values()
-                    ->map(fn ($it, $idx) => ['title' => $it['title'], 'order' => $idx + 1])
+                    ->map(fn ($it, $idx) => [
+                        'title'      => $it['title'],
+                        'standar'    => $it['standar'] ?? null,
+                        'keterangan' => $it['keterangan'] ?? null,
+                        'order'      => $idx + 1,
+                    ])
                     ->all()
             );
 
@@ -230,7 +241,12 @@ class PracticeRuleController extends Controller
                 $practice_rule->checklists()->delete();
                 $practice_rule->checklists()->createMany(
                     collect($data['checklists'])->values()
-                        ->map(fn ($it, $idx) => ['title' => $it['title'], 'order' => $idx + 1])
+                        ->map(fn ($it, $idx) => [
+                            'title'      => $it['title'],
+                            'standar'    => $it['standar'] ?? null,
+                            'keterangan' => $it['keterangan'] ?? null,
+                            'order'      => $idx + 1,
+                        ])
                         ->all()
                 );
             }

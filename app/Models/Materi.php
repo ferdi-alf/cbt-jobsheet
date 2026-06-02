@@ -13,6 +13,9 @@ class Materi extends Model
         'title',
         'pdf_path',
         'praktik_text',
+        'k3_alat_bahan',
+        'elemen',
+        'tujuan_pembelajaran',
         'kelas_id',
         'mapel_id',
         'created_by',
@@ -28,8 +31,7 @@ class Materi extends Model
         return $this->belongsTo(Mapel::class, 'mapel_id');
     }
 
-
-     public function creator(): BelongsTo
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
@@ -48,5 +50,4 @@ class Materi extends Model
     {
         return $this->hasMany(PracticeSubmission::class, 'materi_id');
     }
-    
 }

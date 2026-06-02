@@ -27,6 +27,11 @@ class PracticeSubmission extends Model
         'total_score' => 'integer',
     ];
 
+    public function apdPhotos(): HasMany
+    {
+        return $this->hasMany(PracticeSubmissionApdPhoto::class, 'submission_id');
+    }
+
     public function materi(): BelongsTo
     {
         return $this->belongsTo(Materi::class, 'materi_id');

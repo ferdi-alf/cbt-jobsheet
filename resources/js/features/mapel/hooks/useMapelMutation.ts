@@ -1,6 +1,11 @@
 import { toast } from "sonner";
 import { useProgress } from "@/Components/progress/ProgressProvider";
-import { createMapel, updateMapel, deleteMapel } from "../api/mapels.api";
+import {
+    createMapel,
+    updateMapel,
+    deleteMapel,
+    type MapelPayload,
+} from "../api/mapels.api";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function useMapelMutations(onDone?: () => void) {
@@ -12,14 +17,13 @@ export function useMapelMutations(onDone?: () => void) {
             queryKey: ["table-data", "/api/mapels"],
             exact: false,
         });
-
         await qc.invalidateQueries({
             queryKey: ["expandable-data"],
             exact: false,
         });
     };
 
-    const create = async (payload: { name: string }) => {
+    const create = async (payload: MapelPayload) => {
         try {
             start("Membuat mapel...");
             const res = await createMapel(payload);
@@ -35,7 +39,7 @@ export function useMapelMutations(onDone?: () => void) {
         }
     };
 
-    const update = async (id: number, payload: { name: string }) => {
+    const update = async (id: number, payload: MapelPayload) => {
         try {
             start("Mengupdate mapel...");
             await updateMapel(id, payload);

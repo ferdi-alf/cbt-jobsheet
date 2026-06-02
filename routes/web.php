@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\JurusanController;
 use App\Http\Controllers\Admin\LookupController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\KelasController;
@@ -42,15 +43,24 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/lookups/mapels', [LookupController::class, 'mapels']);
         Route::apiResource('users', UserController::class)->except(['create', 'edit']);
     });
+
+
+    Route::get('/jurusans', fn () => inertia('Admin/Jurusans/Index'))->name('jurusans.index');
+    Route::prefix('api')->group(function () {
+        Route::apiResource('jurusans', JurusanController::class)->except(['create', 'edit']);
+    });
     
     
     Route::get('/kelas', fn () => inertia('Admin/Kelas/Index'))->name('kelas.index');
     Route::prefix('api')->group( function() {
-        Route::apiResource('kelas', KelasController::class)->except(['create', 'edit']);
+    Route::apiResource('kelas', KelasController::class)
+        ->except(['create', 'edit'])
+        ->parameters(['kelas' => 'kelas']); 
         Route::get('kelas/{kelas}/students', [KelasStudentController::class, 'index']);
         Route::get('kelas/{kelas}/overview', [KelasOverviewController::class, 'show']);
         Route::get('kelas/{kelas}/materials', [KelasMaterialController::class, 'index']);
     });
+    
 
     Route::get('/mapels', fn () => inertia('Admin/Mapels/Index'))->name('mapels.index');
     Route::prefix('api')->group(function() {
@@ -160,7 +170,21 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
             ->name('api.siswa.tests.submit');
         Route::get('/tests/{publicKey}/result', [SiswaTestSessionController::class, 'result'])
             ->name('api.siswa.tests.result');
-    });
+
+        Route::post('/siswa/materis/{materi}/practice/apd-photos', [SiswaMateriController::class, 'storeApdPhoto'])->name('api.siswa.materis.apd-photos.store');
+
+        Route::delete('/practice-apd-photos/{photo}',
+                [SiswaMateriController::class, 'destroyApdPhoto'])
+                ->name('api.practice-apd-photos.destroy');
+
+        Route::get('/practice-apd-photos/{photo}',
+                [SiswaMateriController::class, 'viewApdPhoto'])
+                ->name('api.practice-apd-photos.show');
+
+        Route::patch('/siswa/materis/{materi}/practice/items/{checklistId}',
+            [SiswaMateriController::class, 'updateItem'])
+                ->name('api.siswa.materis.practice-items.update');
+            });
 
     Route::prefix('api/siswa')->group(function () {
         Route::get('/pretests', [SiswaPretestController::class, 'index'])
@@ -186,7 +210,9 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
         Route::post('/materis/{materi}/practice/submit', [SiswaMateriController::class, 'submitPractice'])
             ->name('api.siswa.practice.submit');
     });
-});
+
+ 
+    });
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/api/practice-photos/{photo}', [SiswaMateriController::class, 'viewPhoto'])

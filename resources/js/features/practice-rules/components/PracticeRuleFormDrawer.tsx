@@ -18,8 +18,13 @@ import type { PracticeRuleEditDetail } from "../types";
 import { usePracticeRuleLookups } from "../hooks/usePracticeRuleLookups";
 import { usePracticeRuleMutations } from "../hooks/usePracticeRuleMutations";
 import { getPracticeRuleForEdit } from "../api/practiceRules.api";
+import { Textarea } from "@/Components/ui/textarea";
 
-type ChecklistItem = { title: string };
+type ChecklistItem = {
+    title: string;
+    standar: string;
+    keterangan: string;
+};
 
 export default function PracticeRuleFormDrawer({
     mode,
@@ -42,8 +47,8 @@ export default function PracticeRuleFormDrawer({
     });
 
     const bulk = useBulkGroups<ChecklistItem>({
-        initialItem: () => ({ title: "" }),
-        initialItems: [{ title: "" }],
+        initialItem: () => ({ title: "", standar: "", keterangan: "" }),
+        initialItems: [{ title: "", standar: "", keterangan: "" }],
         errorPrefix: "checklists",
     });
 
@@ -64,7 +69,7 @@ export default function PracticeRuleFormDrawer({
 
         if (!isEdit) {
             setForm({ materi_id: "", title: "", deadline_at: "" });
-            bulk.setItems([{ title: "" }]);
+            bulk.setItems([{ title: "", standar: "", keterangan: "" }]);
             return;
         }
 
@@ -81,12 +86,16 @@ export default function PracticeRuleFormDrawer({
                     deadline_at: toDatetimeLocal(data.deadline_at),
                 });
 
-                const items =
-                    (data.checklists ?? []).map((c) => ({
-                        title: c.title ?? "",
-                    })) || [];
-
-                bulk.setItems(items.length ? items : [{ title: "" }]);
+                const items = (data.checklists ?? []).map((c) => ({
+                    title: c.title ?? "",
+                    standar: c.standar ?? "",
+                    keterangan: c.keterangan ?? "",
+                }));
+                bulk.setItems(
+                    items.length
+                        ? items
+                        : [{ title: "", standar: "", keterangan: "" }],
+                );
             } catch (e) {}
         })();
     }, [open, isEdit, ruleId]);
@@ -111,7 +120,11 @@ export default function PracticeRuleFormDrawer({
             deadline_at: form.deadline_at
                 ? fromDatetimeLocal(form.deadline_at)
                 : null,
-            checklists: bulk.items.map((it) => ({ title: it.title.trim() })),
+            checklists: bulk.items.map((it) => ({
+                title: it.title.trim(),
+                standar: it.standar.trim() || null,
+                keterangan: it.keterangan.trim() || null,
+            })),
         };
 
         try {
@@ -201,22 +214,73 @@ export default function PracticeRuleFormDrawer({
                             itemsLabelPrefix="Item"
                             bulk={bulk}
                             renderItem={(item, idx, api) => (
-                                <div className="grid gap-2">
-                                    <Label>Judul Checklist</Label>
-                                    <Input
-                                        value={item.title}
-                                        onChange={(e) =>
-                                            api.update(idx, {
-                                                title: e.target.value,
-                                            })
-                                        }
-                                        placeholder="Contoh: Upload foto hasil..."
-                                    />
-                                    {api.getFieldError(idx, "title") && (
-                                        <div className="text-sm text-destructive">
-                                            {api.getFieldError(idx, "title")}
-                                        </div>
-                                    )}
+                                <div className="grid gap-3">
+                                    <div className="grid gap-2">
+                                        <Label>Judul Checklist</Label>
+                                        <Input
+                                            value={item.title}
+                                            onChange={(e) =>
+                                                api.update(idx, {
+                                                    title: e.target.value,
+                                                })
+                                            }
+                                            placeholder="Contoh: Upload foto hasil..."
+                                        />
+                                        {api.getFieldError(idx, "title") && (
+                                            <div className="text-sm text-destructive">
+                                                {api.getFieldError(
+                                                    idx,
+                                                    "title",
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label>Standar</Label>
+                                        <Input
+                                            value={item.standar}
+                                            onChange={(e) =>
+                                                api.update(idx, {
+                                                    standar: e.target.value,
+                                                })
+                                            }
+                                            placeholder="Contoh: Foto minimal 1, resolusi jelas..."
+                                        />
+                                        {api.getFieldError(idx, "standar") && (
+                                            <div className="text-sm text-destructive">
+                                                {api.getFieldError(
+                                                    idx,
+                                                    "standar",
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label>Keterangan</Label>
+                                        <Textarea
+                                            value={item.keterangan}
+                                            onChange={(e) =>
+                                                api.update(idx, {
+                                                    keterangan: e.target.value,
+                                                })
+                                            }
+                                            placeholder="Keterangan tambahan untuk item ini..."
+                                            rows={2}
+                                        />
+                                        {api.getFieldError(
+                                            idx,
+                                            "keterangan",
+                                        ) && (
+                                            <div className="text-sm text-destructive">
+                                                {api.getFieldError(
+                                                    idx,
+                                                    "keterangan",
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         />

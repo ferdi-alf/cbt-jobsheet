@@ -12,6 +12,9 @@ class PracticeSubmissionItem extends Model
         'submission_id',
         'checklist_id',
         'note',
+        'score',
+        'hasil',        
+        'keterangan',   
     ];
 
     public function submission(): BelongsTo

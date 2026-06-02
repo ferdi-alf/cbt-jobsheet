@@ -32,48 +32,40 @@ class MateriController extends Controller
         $user = Auth::user();
 
         $query = Materi::query()
-            ->with([
-                'kelas:id,name',
-                'mapel:id,name',
-                'creator:id,name,email',
-            ])
+            ->with(['kelas:id,name', 'mapel:id,name,fase', 'creator:id,name,email'])
             ->orderByDesc('id');
 
         if ($user->role === 'guru') {
             $gp = $this->requireGuruProfile($user->id);
-
-            $query->where('kelas_id', $gp->kelas_id)
-                  ->where('mapel_id', $gp->mapel_id);
+            $query->where('kelas_id', $gp->kelas_id)->where('mapel_id', $gp->mapel_id);
         }
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', '%' . $search . '%');
-            });
+            $query->where(fn ($q) => $q->where('title', 'like', '%' . $search . '%'));
         }
 
         $paginator = $this->paginateEloquent($query, $page, $limit);
 
-        $items = collect($paginator->items())->map(function (Materi $m) {
-            return [
-                'id'                     => $m->id,
-                'title'                  => $m->title,
-                'kelas'                  => $m->kelas?->name,
-                'mapel'                  => $m->mapel?->name,
-                'kelas_id'               => $m->kelas_id,
-                'mapel_id'               => $m->mapel_id,
-                'export_results_zip_url' => route('api.materis.export-results-zip', ['materi' => $m->id]),
-                'created_by'             => $m->creator ? [
-                    'id'    => $m->creator->id,
-                    'name'  => $m->creator->name,
-                    'email' => $m->creator->email,
-                ] : null,
-                'praktik_text' => $m->praktik_text,
-                'pdf_url'      => $m->pdf_path ? Storage::disk('public')->url($m->pdf_path) : null,
-                'download_url' => route('api.materis.download', ['materi' => $m->id]),
-                'created_at'   => optional($m->created_at)->toDateTimeString(),
-            ];
-        })->values();
+        $items = collect($paginator->items())->map(fn (Materi $m) => [
+            'id'                     => $m->id,
+            'title'                  => $m->title,
+            'kelas'                  => $m->kelas?->name,
+            'mapel'                  => $m->mapel?->name,
+            'fase'                   => $m->mapel?->fase,
+            'kelas_id'               => $m->kelas_id,
+            'mapel_id'               => $m->mapel_id,
+            'praktik_text'           => $m->praktik_text,
+            'k3_alat_bahan'          => $m->k3_alat_bahan,
+            'elemen'                 => $m->elemen,
+            'tujuan_pembelajaran'    => $m->tujuan_pembelajaran,
+            'export_results_zip_url' => route('api.materis.export-results-zip', ['materi' => $m->id]),
+            'created_by'             => $m->creator ? [
+                'id' => $m->creator->id, 'name' => $m->creator->name, 'email' => $m->creator->email,
+            ] : null,
+            'pdf_url'      => $m->pdf_path ? Storage::disk('public')->url($m->pdf_path) : null,
+            'download_url' => route('api.materis.download', ['materi' => $m->id]),
+            'created_at'   => optional($m->created_at)->toDateTimeString(),
+        ])->values();
 
         return $this->paginatedResponse($paginator, $items);
     }
@@ -82,11 +74,7 @@ class MateriController extends Controller
     {
         $this->authorize('view', $materi);
 
-        $materi->load([
-            'kelas:id,name',
-            'mapel:id,name',
-            'creator:id,name,email',
-        ]);
+        $materi->load(['kelas:id,name', 'mapel:id,name', 'creator:id,name,email']);
 
         return response()->json([
             'success' => true,
@@ -94,15 +82,16 @@ class MateriController extends Controller
                 'id'                     => $materi->id,
                 'title'                  => $materi->title,
                 'praktik_text'           => $materi->praktik_text,
+                'k3_alat_bahan'          => $materi->k3_alat_bahan,
+                'elemen'                 => $materi->elemen,
+                'tujuan_pembelajaran'    => $materi->tujuan_pembelajaran,
                 'kelas_id'               => $materi->kelas_id,
                 'mapel_id'               => $materi->mapel_id,
                 'kelas'                  => $materi->kelas?->name,
                 'mapel'                  => $materi->mapel?->name,
                 'export_results_zip_url' => route('api.materis.export-results-zip', ['materi' => $materi->id]),
                 'created_by'             => $materi->creator ? [
-                    'id'    => $materi->creator->id,
-                    'name'  => $materi->creator->name,
-                    'email' => $materi->creator->email,
+                    'id' => $materi->creator->id, 'name' => $materi->creator->name, 'email' => $materi->creator->email,
                 ] : null,
                 'pdf' => [
                     'url'          => $materi->pdf_path ? Storage::disk('public')->url($materi->pdf_path) : null,
@@ -123,7 +112,6 @@ class MateriController extends Controller
 
         if ($user->role === 'guru') {
             $gp = $this->requireGuruProfile($user->id);
-
             $data['kelas_id'] = (int) $gp->kelas_id;
             $data['mapel_id'] = (int) $gp->mapel_id;
         }
@@ -131,12 +119,15 @@ class MateriController extends Controller
         $pdfPath = $request->file('pdf')->store('materi_pdfs', 'public');
 
         $materi = Materi::create([
-            'title'        => $data['title'],
-            'praktik_text' => $data['praktik_text'] ?? null,
-            'kelas_id'     => (int) $data['kelas_id'],
-            'mapel_id'     => (int) $data['mapel_id'],
-            'created_by'   => $user->id,
-            'pdf_path'     => $pdfPath,
+            'title'          => $data['title'],
+            'praktik_text'   => $data['praktik_text'] ?? null,
+            'k3_alat_bahan'      => $data['k3_alat_bahan'] ?? null,
+            'elemen'             => $data['elemen'] ?? null,
+            'tujuan_pembelajaran' => $data['tujuan_pembelajaran'] ?? null,
+            'kelas_id'       => (int) $data['kelas_id'],
+            'mapel_id'       => (int) $data['mapel_id'],
+            'created_by'     => $user->id,
+            'pdf_path'       => $pdfPath,
         ]);
 
         return response()->json(['success' => true, 'data' => ['id' => $materi->id]]);
@@ -154,7 +145,7 @@ class MateriController extends Controller
         }
 
         DB::transaction(function () use ($request, $materi, $data) {
-            foreach (['title', 'praktik_text', 'kelas_id', 'mapel_id'] as $field) {
+            foreach (['title', 'praktik_text', 'k3_alat_bahan', 'elemen', 'tujuan_pembelajaran', 'kelas_id', 'mapel_id'] as $field) {
                 if (array_key_exists($field, $data)) {
                     $materi->{$field} = in_array($field, ['kelas_id', 'mapel_id'])
                         ? (int) $data[$field]
@@ -299,11 +290,10 @@ class MateriController extends Controller
             ->orderByRaw("CASE WHEN status = 'submitted' THEN 0 ELSE 1 END")
             ->orderByDesc('submitted_at');
 
-        // search by student name via join
         if ($search) {
-            $query->whereHas('student.siswaProfile', function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%");
-            });
+            $query->whereHas('student.siswaProfile', fn ($q) =>
+                $q->where('full_name', 'like', "%{$search}%")
+            );
         }
 
         $paginator = $this->paginateEloquent($query, $page, $limit);
@@ -348,23 +338,23 @@ class MateriController extends Controller
                 'student.siswaProfile:user_id,full_name',
                 'answers:id,attempt_id,is_correct',
             ])
-            ->whereHas('test', function ($q) use ($materi, $type) {
-                $q->where('materi_id', $materi->id)->where('type', $type);
-            })
+            ->whereHas('test', fn ($q) =>
+                $q->where('materi_id', $materi->id)->where('type', $type)
+            )
             ->where('status', 'submitted')
             ->orderByDesc('finished_at');
 
         if ($search) {
-            $query->whereHas('student.siswaProfile', function ($q) use ($search) {
-                $q->where('full_name', 'like', "%{$search}%");
-            });
+            $query->whereHas('student.siswaProfile', fn ($q) =>
+                $q->where('full_name', 'like', "%{$search}%")
+            );
         }
 
         $paginator = $this->paginateEloquent($query, $page, $limit);
 
         $items = collect($paginator->items())->map(function ($row) {
-            $correct = $row->answers->where('is_correct', true)->count();
-            $wrong   = $row->answers->where('is_correct', false)->count();
+            $correct = $row->answers->filter(fn ($ans) => (bool) $ans->is_correct)->count();
+            $wrong   = $row->answers->filter(fn ($ans) => !(bool) $ans->is_correct)->count();
 
             return [
                 'id'               => $row->id,

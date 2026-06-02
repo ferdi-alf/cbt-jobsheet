@@ -1,7 +1,6 @@
-import { ReactNode, useState } from "react";
+import { useState } from "react";
 import EntityDrawer from "@/Components/drawers/EntityDrawer";
 import { getPracticeResult } from "../api/practiceResults.api";
-import type { PracticeResultDetail } from "../types";
 import PracticeResultDrawerContent from "./PracticeResultDrawerContent";
 
 export default function PracticeResultViewDrawer({

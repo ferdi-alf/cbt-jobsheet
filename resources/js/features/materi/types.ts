@@ -1,23 +1,35 @@
-export type LookupItem = { id: number; name: string };
+import type { MapelFase } from "@/features/mapel/types";
+
+export type LookupKelasItem = {
+    id: number;
+    name: string;
+    tingkat: "X" | "XI" | "XII" | null;
+};
+
+export type LookupMapelItem = {
+    id: number;
+    name: string;
+    fase: MapelFase | null;
+};
 
 export type MateriRow = {
     id: number;
     title: string;
-
     mapel?: string | null;
+    fase?: string | null;
     kelas?: string | null;
     mapel_id?: number | null;
     kelas_id?: number | null;
     export_results_zip_url?: string | null;
     praktik_text?: string | null;
-
+    k3_alat_bahan?: string | null;
+    elemen?: string | null;
+    tujuan_pembelajaran?: string | null;
     created_by?:
         | { id?: number; name?: string | null; email?: string | null }
         | string
         | null;
-
     created_at?: string;
-
     download_url?: string | null;
 };
 
@@ -25,21 +37,20 @@ export type MateriDetail = {
     id: number;
     title: string;
     praktik_text?: string | null;
-
+    k3_alat_bahan?: string | null;
+    elemen?: string | null;
+    tujuan_pembelajaran?: string | null;
     kelas_id: number;
     mapel_id: number;
     kelas?: string | null;
     mapel?: string | null;
-
     created_by?: {
         id?: number;
         name?: string | null;
         email?: string | null;
     } | null;
-
     pdf?: { download_url?: string | null; url: string | null } | null;
     export_results_zip_url?: string | null;
-
     created_at?: string;
 };
 

@@ -24,7 +24,7 @@ export default function SiswaSidebar({
         user?.profile?.full_name || user?.name || user?.email || "Siswa";
 
     return (
-        <aside className="md:flex md:w-72 md:flex-col md:border-r md:bg-background">
+        <aside className="md:flex md:w-72 md:flex-col md:border-r md:bg-background overflow-auto">
             <div className="p-4 border-b">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">

@@ -1,3 +1,5 @@
+// Pages/Admin/Kelas/Index.tsx
+
 import AdminLayout from "@/Layouts/AdminLayout";
 import { Head } from "@inertiajs/react";
 import { DataTable } from "@/Components/data-table";
@@ -15,14 +17,52 @@ export default function KelasIndex() {
     const columns = [
         { key: "name", label: "Nama Kelas" },
         {
+            key: "jurusan",
+            label: "Jurusan",
+            render: (_: any, row: KelasRow) =>
+                row.jurusan ? (
+                    <div className="flex items-center gap-2">
+                        {row.jurusan.logo_url ? (
+                            <img
+                                src={row.jurusan.logo_url}
+                                alt={row.jurusan.name}
+                                className="h-5 w-5 object-contain rounded-sm flex-shrink-0"
+                            />
+                        ) : (
+                            <div className="h-5 w-5 rounded-sm bg-muted flex-shrink-0" />
+                        )}
+                        <span className="text-sm">{row.jurusan.name}</span>
+                    </div>
+                ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                ),
+        },
+        {
+            key: "tingkat",
+            label: "Tingkat",
+            align: "center" as const,
+            render: (v: KelasRow["tingkat"]) =>
+                v ? (
+                    <Badge variant="outline">Kelas {v}</Badge>
+                ) : (
+                    <span className="text-muted-foreground">—</span>
+                ),
+        },
+        {
+            key: "tahun_ajaran",
+            label: "Tahun Ajaran",
+            align: "center" as const,
+            render: (v: string | null) => v ?? "—",
+        },
+        {
             key: "total_students",
-            label: "Total Siswa",
+            label: "Siswa",
             align: "center" as const,
             render: (v: number) => <Badge variant="secondary">{v}</Badge>,
         },
         {
             key: "total_guru",
-            label: "Guru Handle",
+            label: "Guru",
             align: "center" as const,
             render: (v: number) => <Badge variant="outline">{v}</Badge>,
         },
@@ -48,7 +88,13 @@ export default function KelasIndex() {
                 />
 
                 <KelasFormDialog
-                    initial={{ id: row.id, name: row.name }}
+                    initial={{
+                        id: row.id,
+                        name: row.name,
+                        tingkat: row.tingkat,
+                        tahun_ajaran: row.tahun_ajaran,
+                        jurusan: row.jurusan,
+                    }}
                     trigger={
                         <Button
                             variant="ghost"
@@ -106,7 +152,7 @@ export default function KelasIndex() {
                     actions={actions}
                     search={{
                         enabled: true,
-                        placeholder: "Search kelas...",
+                        placeholder: "Search kelas / jurusan...",
                         debounceMs: 300,
                     }}
                     pagination={{

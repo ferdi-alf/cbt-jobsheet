@@ -32,12 +32,20 @@ export type PracticeRuleDetail = {
     created_by?: CreatedBy | null;
 };
 
+// types.ts
+
 export type PracticeRuleEditDetail = {
     id: number;
     materi_id: number;
     title: string;
     deadline_at: string | null;
-    checklists: { id?: number; title: string; order?: number }[];
+    checklists: {
+        id?: number;
+        title: string;
+        standar?: string | null;
+        keterangan?: string | null;
+        order?: number;
+    }[];
     materi_label?: { title?: string; kelas?: string; mapel?: string };
 };
 

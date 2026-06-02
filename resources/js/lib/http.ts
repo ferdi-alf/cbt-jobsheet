@@ -140,6 +140,13 @@ export const api = {
             body: body !== undefined ? JSON.stringify(body) : undefined,
         }),
 
+    patch: <T>(path: string, body?: any) =>
+        apiRequest<T>(path, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: body !== undefined ? JSON.stringify(body) : undefined,
+        }),
+
     del: <T>(path: string) => apiRequest<T>(path, { method: "DELETE" }),
 
     postForm: <T>(path: string, form: FormData) =>

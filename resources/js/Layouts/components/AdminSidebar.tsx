@@ -1,6 +1,5 @@
 import { router, usePage } from "@inertiajs/react";
 import {
-    BarChart3,
     BookOpen,
     ClipboardCheck,
     ClipboardList,
@@ -26,7 +25,7 @@ export default function AdminSidebar({
     const user = (page.props as any).auth?.user;
 
     return (
-        <aside className=" md:flex md:w-72 md:flex-col md:border-r md:bg-background">
+        <aside className=" md:flex md:w-72 md:flex-col md:border-r md:bg-background  overflow-auto">
             <div className="p-4 bg border-b">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
@@ -65,6 +64,17 @@ export default function AdminSidebar({
                             activePathStartsWith="/users"
                         >
                             User
+                        </SidebarItem>
+                    </div>
+
+                    <div className="px-2 pt-2 space-y-1">
+                        <SidebarItem
+                            onClick={onNavigate}
+                            href="/jurusans"
+                            icon={<GraduationCap className="h-4 w-4" />}
+                            activePathStartsWith="/jurusans"
+                        >
+                            Jurusan
                         </SidebarItem>
                     </div>
 

@@ -8,22 +8,31 @@ use App\Models\Mapel;
 
 class LookupController extends Controller
 {
-    public function kelas() {
+    public function kelas()
+    {
         $items = Kelas::query()
-            ->select(['id', 'name'])
-            ->orderby('name')
-            ->get();
-
-        return response()->json(['success' => true, 'data' => $items]);
-    }
-
-    public function mapels() {
-        $items = Mapel::query()
-            ->select(['id', 'name'])
             ->orderBy('name')
-            ->get();
+            ->get(['id', 'name', 'tingkat', 'jurusan_id'])
+            ->map(fn ($k) => [
+                'id'      => $k->id,
+                'name'    => $k->name,
+                'tingkat' => $k->tingkat,
+            ]);
 
-        return response()->json(['success' => true, 'data' => $items]);
+        return response()->json(['success' => true, 'data' => $items, 'error' => null]);
     }
-    
+
+    public function mapels()
+    {
+        $items = Mapel::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'fase'])
+            ->map(fn ($m) => [
+                'id'   => $m->id,
+                'name' => $m->name,
+                'fase' => $m->fase,
+            ]);
+
+        return response()->json(['success' => true, 'data' => $items, 'error' => null]);
+    }
 }

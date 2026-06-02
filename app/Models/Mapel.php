@@ -7,9 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Mapel extends Model
 {
-    protected $fillable = [
-        'name'
-    ];
+    protected $fillable = ['name', 'fase'];
 
     public function guruProfiles(): HasMany
     {

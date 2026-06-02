@@ -14,11 +14,11 @@ class PracticeGradeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'total_score' => ['required', 'integer', 'min:0', 'max:100'],
-            'feedback' => ['nullable', 'string'],
-            'notes' => ['nullable', 'array'],
-            'notes.*.checklist_id' => ['required', 'integer', 'exists:practice_checklists,id'],
-            'notes.*.note' => ['nullable', 'string'],
+            'feedback'              => ['nullable', 'string'],
+            'notes'                 => ['required', 'array'],
+            'notes.*.checklist_id'  => ['required', 'integer', 'exists:practice_checklists,id'],
+            'notes.*.note'          => ['nullable', 'string'],
+            'notes.*.score'         => ['required', 'integer', 'min:0', 'max:100'],
         ];
     }
 }

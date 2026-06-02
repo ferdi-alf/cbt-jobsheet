@@ -1,6 +1,11 @@
+import { JurusanRow } from "../jurusan/type";
+
 export type KelasRow = {
     id: number;
     name: string;
+    tingkat: "X" | "XI" | "XII" | null;
+    tahun_ajaran: string | null;
+    jurusan: Pick<JurusanRow, "id" | "name" | "logo_url"> | null;
     total_students: number;
     total_guru: number;
     created_at: string;

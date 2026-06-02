@@ -115,10 +115,11 @@ class PracticeResultController extends Controller
         $submission->load([
             'student:id,name,email',
             'student.siswaProfile:user_id,full_name',
-            'materi:id,title,praktik_text,kelas_id,mapel_id',
+            'materi:id,title,praktik_text,elemen,tujuan_pembelajaran,k3_alat_bahan,kelas_id,mapel_id',
             'materi.practiceRule:id,materi_id,title,deadline_at',
-            'materi.practiceRule.checklists:id,practice_rule_id,title,order',
-            'items:id,submission_id,checklist_id,note',
+            'materi.practiceRule.apdPhotos:id,submission_id,photo_path,created_at',
+            'materi.practiceRule.checklists:id,practice_rule_id,title,standar,keterangan,order',
+            'items:id,submission_id,checklist_id,note,score,hasil,keterangan',
             'items.photos:id,submission_item_id,photo_path,created_at',
             'grader:id,name,email,role',
             'grader.guruProfile:user_id,full_name',
@@ -143,8 +144,11 @@ class PracticeResultController extends Controller
                     'email'     => $submission->student?->email,
                 ],
                 'materi' => [
-                    'id'    => $submission->materi?->id,
-                    'title' => $submission->materi?->title,
+                    'id'                  => $submission->materi?->id,
+                    'title'               => $submission->materi?->title,
+                    'elemen'              => $submission->materi?->elemen,
+                    'tujuan_pembelajaran' => $submission->materi?->tujuan_pembelajaran,
+                    'k3_alat_bahan'       => $submission->materi?->k3_alat_bahan,
                 ],
                 'grader'   => $submission->grader ? [
                     'id'   => $submission->grader->id,
@@ -152,6 +156,11 @@ class PracticeResultController extends Controller
                         ?? $submission->grader->name
                         ?? $submission->grader->email,
                 ] : null,
+                'apd_photos' => ($submission->apdPhotos ?? collect())->map(fn ($p) => [
+                    'id'          => $p->id,
+                    'view_url'    => route('api.practice-apd-photos.show', ['photo' => $p->id]),
+                    'uploaded_at' => optional($p->created_at)->toDateTimeString(),
+                ])->values(),
                 'practice' => [
                     'title'       => $submission->materi?->practiceRule?->title,
                     'description' => $submission->materi?->praktik_text,
@@ -160,11 +169,16 @@ class PracticeResultController extends Controller
                         ->map(function ($checklist) use ($itemsByChecklist) {
                             $item = $itemsByChecklist->get($checklist->id);
                             return [
-                                'id'     => $checklist->id,
-                                'order'  => (int) $checklist->order,
-                                'title'  => $checklist->title,
-                                'note'   => $item?->note,
-                                'photos' => ($item?->photos ?? collect())->map(fn ($photo) => [
+                                'id'          => $checklist->id,
+                                'order'       => (int) $checklist->order,
+                                'title'       => $checklist->title,
+                                'standar'     => $checklist->standar,
+                                'rule_keterangan' => $checklist->keterangan,
+                                'note'        => $item?->note,
+                                'score'       => $item?->score !== null ? (int) $item->score : null,
+                                'hasil'           => $item?->hasil,     
+                                'keterangan'      => $item?->keterangan,
+                                'photos'      => ($item?->photos ?? collect())->map(fn ($photo) => [
                                     'id'          => $photo->id,
                                     'view_url'    => route('api.practice-photos.show', ['photo' => $photo->id]),
                                     'uploaded_at' => optional($photo->created_at)->toDateTimeString(),
@@ -189,9 +203,19 @@ class PracticeResultController extends Controller
         $allowedChecklistIds = $submission->materi?->practiceRule?->checklists
             ?->pluck('id')->map(fn ($id) => (int) $id)->all() ?? [];
 
-        DB::transaction(function () use ($submission, $data, $user, $allowedChecklistIds) {
+        // Hitung rata-rata dari semua score item
+        $scores = collect($data['notes'] ?? [])
+            ->filter(fn ($row) => in_array((int) $row['checklist_id'], $allowedChecklistIds, true))
+            ->pluck('score')
+            ->map(fn ($s) => (int) $s);
+
+        $avgScore = $scores->count() > 0
+            ? (int) round($scores->average())
+            : 0;
+
+        DB::transaction(function () use ($submission, $data, $user, $allowedChecklistIds, $avgScore) {
             $submission->status      = 'graded';
-            $submission->total_score = (int) $data['total_score'];
+            $submission->total_score = $avgScore;
             $submission->feedback    = $data['feedback'] ?? null;
             $submission->graded_by   = $user->id;
             $submission->graded_at   = now();
@@ -203,7 +227,10 @@ class PracticeResultController extends Controller
 
                 PracticeSubmissionItem::updateOrCreate(
                     ['submission_id' => $submission->id, 'checklist_id' => $checklistId],
-                    ['note'          => filled($row['note'] ?? null) ? $row['note'] : null]
+                    [
+                        'note'  => filled($row['note'] ?? null) ? $row['note'] : null,
+                        'score' => (int) $row['score'],
+                    ]
                 );
             }
         });

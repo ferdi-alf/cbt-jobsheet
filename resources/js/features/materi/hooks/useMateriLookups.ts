@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import type { LookupItem } from "../types";
+import type { LookupKelasItem, LookupMapelItem } from "../types";
 
 type ApiRes<T> = { success: boolean; data: T; error?: string };
 
@@ -11,15 +11,15 @@ async function fetchJson<T>(url: string): Promise<T> {
 }
 
 export function useMateriLookups(open: boolean) {
-    const kelas = useQuery<LookupItem[], Error>(
+    const kelas = useQuery<LookupKelasItem[], Error>(
         ["lookups-kelas"],
-        () => fetchJson<LookupItem[]>("/api/lookups/kelas"),
+        () => fetchJson<LookupKelasItem[]>("/api/lookups/kelas"),
         { enabled: open, staleTime: 5 * 60 * 1000 },
     );
 
-    const mapels = useQuery<LookupItem[], Error>(
+    const mapels = useQuery<LookupMapelItem[], Error>(
         ["lookups-mapels"],
-        () => fetchJson<LookupItem[]>("/api/lookups/mapels"),
+        () => fetchJson<LookupMapelItem[]>("/api/lookups/mapels"),
         { enabled: open, staleTime: 5 * 60 * 1000 },
     );
 

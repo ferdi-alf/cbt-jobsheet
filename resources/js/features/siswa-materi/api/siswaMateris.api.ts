@@ -3,6 +3,7 @@ import type {
     PracticeSubmitResult,
     SiswaMateriDetail,
     SiswaMateriListItem,
+    UploadedApdPhoto,
     UploadedPracticePhoto,
 } from "../types";
 
@@ -49,5 +50,29 @@ export async function submitPractice(
         {
             confirm_incomplete: confirmIncomplete,
         },
+    );
+}
+
+export async function uploadApdPhoto(materiId: number, file: File) {
+    const fd = new FormData();
+    fd.append("photo", file);
+    return api.postForm<UploadedApdPhoto>(
+        `/api/siswa/materis/${materiId}/practice/apd-photos`,
+        fd,
+    );
+}
+
+export async function deleteApdPhoto(photoId: number) {
+    return api.del<boolean>(`/api/practice-apd-photos/${photoId}`);
+}
+
+export async function updatePracticeItem(
+    materiId: number,
+    checklistId: number,
+    data: { hasil?: string | null; keterangan?: string | null },
+) {
+    return api.patch<boolean>(
+        `/api/siswa/materis/${materiId}/practice/items/${checklistId}`,
+        data,
     );
 }

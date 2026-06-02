@@ -8,12 +8,14 @@ import {
     DialogDescription,
     DialogFooter,
     DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/Components/ui/dialog";
-import { DialogTitle, DialogTrigger } from "@radix-ui/react-dialog";
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
 import { Label } from "@/Components/ui/label";
 import { Textarea } from "@/Components/ui/textarea";
+import { Badge } from "@/Components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
     Select,
@@ -29,8 +31,21 @@ import { getMateri } from "../api/materi.api";
 import {
     buildMateriFormData,
     mapInitialMateriForm,
-    MateriFormState,
+    type MateriFormState,
 } from "../utils/useMateriForm";
+import type { LookupMapelItem } from "../types";
+
+const TINGKAT_TO_FASE: Record<string, "E" | "F"> = {
+    X: "E",
+    XI: "F",
+    XII: "F",
+};
+
+const FASE_LABEL: Record<string, string> = {
+    E: "Fase E",
+    F: "Fase F",
+    "E,F": "Fase E & F",
+};
 
 export default function MateriFormDialog({
     mode,
@@ -51,7 +66,6 @@ export default function MateriFormDialog({
     const isGuru = role === "guru";
 
     const { kelas, mapels } = useMateriLookups(open && isAdmin);
-
     const mutations = useMateriMutations(() => {
         setOpen(false);
         onSuccess?.();
@@ -64,9 +78,7 @@ export default function MateriFormDialog({
 
     useEffect(() => {
         if (!open) return;
-
         setForm(mapInitialMateriForm());
-
         if (isEdit && materiId) {
             setLoadingDetail(true);
             getMateri(materiId)
@@ -81,12 +93,37 @@ export default function MateriFormDialog({
     const set = (k: keyof MateriFormState, v: any) =>
         setForm((p) => ({ ...p, [k]: v }));
 
+    // Fase expected dari kelas yang dipilih
+    const selectedKelas = useMemo(
+        () => kelas.data?.find((k) => String(k.id) === form.kelas_id) ?? null,
+        [kelas.data, form.kelas_id],
+    );
+
+    const expectedFase = selectedKelas?.tingkat
+        ? (TINGKAT_TO_FASE[selectedKelas.tingkat] ?? null)
+        : null;
+
+    const filteredMapels = useMemo<LookupMapelItem[]>(() => {
+        const all = mapels.data ?? [];
+        if (!expectedFase) return all;
+        return all.filter((m) => {
+            if (!m.fase) return true;
+            return m.fase.split(",").includes(expectedFase);
+        });
+    }, [mapels.data, expectedFase]);
+
+    useEffect(() => {
+        if (!form.mapel_id || !expectedFase) return;
+        const stillValid = filteredMapels.some(
+            (m) => String(m.id) === form.mapel_id,
+        );
+        if (!stillValid) set("mapel_id", "");
+    }, [filteredMapels]);
+
     const canSubmit = useMemo(() => {
         if (!form.title.trim()) return false;
-
         if (isAdmin) {
-            if (!form.kelas_id) return false;
-            if (!form.mapel_id) return false;
+            if (!form.kelas_id || !form.mapel_id) return false;
         }
         if (!isEdit && !form.pdf) return false;
         return true;
@@ -109,18 +146,17 @@ export default function MateriFormDialog({
 
     const submit = async () => {
         const fd = buildMateriFormData(form);
-
         if (!isEdit && !form.pdf) {
             toast.error("PDF wajib diupload");
             return;
         }
-
-        if (isEdit) {
-            await mutations.update(materiId!, fd);
-        } else {
-            await mutations.create(fd);
-        }
+        if (isEdit) await mutations.update(materiId!, fd);
+        else await mutations.create(fd);
     };
+
+    const selectedMapel = mapels.data?.find(
+        (m) => String(m.id) === form.mapel_id,
+    );
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -136,29 +172,64 @@ export default function MateriFormDialog({
                     </DialogTitle>
                     <DialogDescription>
                         {isEdit
-                            ? "Perbarui judul, praktik, atau PDF materi."
+                            ? "Perbarui detail materi."
                             : "Upload PDF materi dan isi detailnya."}
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 overflow-auto p-2">
+                    {/* Judul */}
                     <div className="grid gap-2">
                         <Label>Judul</Label>
                         <Input
                             value={form.title}
                             onChange={(e) => set("title", e.target.value)}
+                            placeholder="Judul materi..."
                         />
                     </div>
 
+                    {/* Deskripsi Praktik */}
                     <div className="grid gap-2">
-                        <Label>Deskripti Praktik</Label>
+                        <Label>Deskripsi Praktik</Label>
                         <Textarea
                             value={form.praktik_text}
                             onChange={(e) =>
                                 set("praktik_text", e.target.value)
                             }
                             placeholder="Tulis instruksi praktik..."
-                            rows={6}
+                            rows={4}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>K3 dan APD</Label>
+                        <Textarea
+                            value={form.k3_alat_bahan}
+                            onChange={(e) =>
+                                set("k3_alat_bahan", e.target.value)
+                            }
+                            placeholder="Tulis daftar prosedur keselamatan keamanan kerja (k3) dan APD"
+                            rows={4}
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>Elemen</Label>
+                        <Input
+                            value={form.elemen}
+                            onChange={(e) => set("elemen", e.target.value)}
+                            placeholder="Contoh: Elemen 3.1 — Keamanan Jaringan..."
+                        />
+                    </div>
+
+                    <div className="grid gap-2">
+                        <Label>Tujuan Pembelajaran</Label>
+                        <Input
+                            value={form.tujuan_pembelajaran}
+                            onChange={(e) =>
+                                set("tujuan_pembelajaran", e.target.value)
+                            }
+                            placeholder="Contoh: Siswa mampu memahami konsep jaringan..."
                         />
                     </div>
 
@@ -185,39 +256,89 @@ export default function MateriFormDialog({
                                                 key={k.id}
                                                 value={String(k.id)}
                                             >
-                                                {k.name}
+                                                <span>{k.name}</span>
+                                                {k.tingkat && (
+                                                    <span className="ml-2 text-xs text-muted-foreground">
+                                                        Kelas {k.tingkat}
+                                                    </span>
+                                                )}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
+
+                                {/* Info fase dari kelas terpilih */}
+                                {selectedKelas?.tingkat && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Kelas {selectedKelas.tingkat} →{" "}
+                                        <span className="font-medium text-foreground">
+                                            {FASE_LABEL[expectedFase!] ??
+                                                `Fase ${expectedFase}`}
+                                        </span>{" "}
+                                        — hanya mapel fase ini yang ditampilkan
+                                    </p>
+                                )}
                             </div>
 
+                            {/* Mapel */}
                             <div className="grid gap-2">
                                 <Label>Mapel</Label>
                                 <Select
                                     value={form.mapel_id}
                                     onValueChange={(v) => set("mapel_id", v)}
+                                    disabled={
+                                        !form.kelas_id ||
+                                        filteredMapels.length === 0
+                                    }
                                 >
                                     <SelectTrigger>
                                         <SelectValue
                                             placeholder={
-                                                mapels.isLoading
-                                                    ? "Loading..."
-                                                    : "Pilih mapel"
+                                                !form.kelas_id
+                                                    ? "Pilih kelas dulu"
+                                                    : mapels.isLoading
+                                                      ? "Loading..."
+                                                      : filteredMapels.length ===
+                                                          0
+                                                        ? "Tidak ada mapel untuk fase ini"
+                                                        : "Pilih mapel"
                                             }
                                         />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {(mapels.data ?? []).map((m) => (
+                                        {filteredMapels.map((m) => (
                                             <SelectItem
                                                 key={m.id}
                                                 value={String(m.id)}
                                             >
-                                                {m.name}
+                                                <div className="flex items-center gap-2">
+                                                    <span>{m.name}</span>
+                                                    {m.fase && (
+                                                        <Badge
+                                                            variant="outline"
+                                                            className="text-xs"
+                                                        >
+                                                            {FASE_LABEL[
+                                                                m.fase
+                                                            ] ?? m.fase}
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
+
+                                {/* Konfirmasi fase mapel terpilih */}
+                                {selectedMapel?.fase && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Mapel ini:{" "}
+                                        <span className="font-medium text-foreground">
+                                            {FASE_LABEL[selectedMapel.fase] ??
+                                                selectedMapel.fase}
+                                        </span>
+                                    </p>
+                                )}
                             </div>
                         </div>
                     )}
@@ -229,16 +350,15 @@ export default function MateriFormDialog({
                         </div>
                     )}
 
+                    {/* PDF Upload */}
                     <div className="grid gap-2">
                         <Label>PDF</Label>
-
                         <div
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={onDrop}
                             className={cn(
                                 "rounded-xl border bg-background p-4",
-                                "flex flex-col items-center justify-center gap-2 text-center",
-                                "border-dashed",
+                                "flex flex-col items-center justify-center gap-2 text-center border-dashed",
                             )}
                         >
                             <UploadCloud className="h-6 w-6" />
@@ -249,16 +369,14 @@ export default function MateriFormDialog({
                                 atau pilih file dari perangkat
                             </div>
 
-                            <div className="flex items-center gap-2 mt-2">
-                                <Input
-                                    type="file"
-                                    accept="application/pdf"
-                                    className="max-w-xs"
-                                    onChange={(e) =>
-                                        onPickFile(e.target.files?.[0] ?? null)
-                                    }
-                                />
-                            </div>
+                            <Input
+                                type="file"
+                                accept="application/pdf"
+                                className="max-w-xs mt-2"
+                                onChange={(e) =>
+                                    onPickFile(e.target.files?.[0] ?? null)
+                                }
+                            />
 
                             {form.pdf && (
                                 <div className="mt-3 w-full rounded-lg border p-3 flex items-center justify-between gap-2">
@@ -273,7 +391,6 @@ export default function MateriFormDialog({
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => set("pdf", null)}
-                                        aria-label="Remove file"
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>
@@ -282,7 +399,7 @@ export default function MateriFormDialog({
 
                             {isEdit && !form.pdf && (
                                 <div className="text-xs text-muted-foreground mt-2">
-                                    (Edit) Kosongkan jika PDF tidak diganti.
+                                    Kosongkan jika PDF tidak diganti.
                                 </div>
                             )}
                         </div>

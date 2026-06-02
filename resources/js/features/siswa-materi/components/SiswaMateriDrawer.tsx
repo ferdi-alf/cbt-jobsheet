@@ -17,8 +17,24 @@ function DrawerContent({ materi }: { materi: SiswaMateriDetail }) {
                 <div className="mb-2">
                     <div className="text-lg font-semibold">{materi.title}</div>
                     <div className="text-sm text-muted-foreground">
-                        {materi.kelas} - {materi.mapel}
+                        {materi.kelas} — {materi.mapel}
                     </div>
+                    {materi.elemen?.trim() && (
+                        <div className="mt-1 text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">
+                                Elemen:
+                            </span>{" "}
+                            {materi.elemen}
+                        </div>
+                    )}
+                    {materi.tujuan_pembelajaran?.trim() && (
+                        <div className="mt-0.5 text-sm text-muted-foreground">
+                            <span className="font-medium text-foreground">
+                                Tujuan:
+                            </span>{" "}
+                            {materi.tujuan_pembelajaran}
+                        </div>
+                    )}
                 </div>
 
                 <TabsList>

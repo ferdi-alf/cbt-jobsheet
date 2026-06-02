@@ -152,14 +152,13 @@ function PracticeRuleViewContent({
                             ))
                         ) : (
                             <div className="text-sm text-muted-foreground">
-                                Semua siswa sudah mengerjakan 🎉
+                                Semua siswa sudah mengerjakan
                             </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* table sudah ngerjain */}
             <div className="rounded-xl border p-3">
                 <div className="font-semibold mb-3">Sudah mengerjakan</div>
 

@@ -12,6 +12,7 @@ import { usePracticeComposer } from "../hooks/usePracticeComposer";
 import type { SiswaMateriDetail } from "../types";
 import PracticeChecklistPanel from "./PracticeChecklistPanel";
 import PracticeSubmitButton from "./PracticeSubmitButton";
+import ApdPhotoSection from "./ApdPhotoSection";
 
 function statusBadges(status: string) {
     if (status === "draft") {
@@ -58,10 +59,11 @@ export default function PracticeTab({
         submitAll,
         uploadFiles,
         removePhoto,
-    } = usePracticeComposer({
-        materiId,
-        initial,
-    });
+        uploadApdFiles,
+        removeApdPhoto,
+        updateChecklistText,
+        saveChecklistItem,
+    } = usePracticeComposer({ materiId, initial });
 
     const defaultOpen = useMemo(
         () => (checklists[0] ? `item-${checklists[0].id}` : undefined),
@@ -78,7 +80,7 @@ export default function PracticeTab({
 
     return (
         <div className="space-y-4">
-            <div className="rounded-3xl border bg-background p-4 shadow-sm">
+            <div className="rounded-3xl space-y-3 border bg-background p-4 shadow-sm">
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                     <div>
                         <div className="text-lg font-semibold">
@@ -106,6 +108,16 @@ export default function PracticeTab({
                         </Badge>
                     </div>
                 </div>
+
+                {practice.rule_id && (
+                    <ApdPhotoSection
+                        k3Info={practice.k3_alat_bahan}
+                        photos={practice.apd_photos}
+                        canEdit={canEdit}
+                        onUpload={uploadApdFiles}
+                        onDelete={removeApdPhoto}
+                    />
+                )}
 
                 {practice.status === "graded" &&
                     practice.total_score !== null && (
@@ -188,6 +200,8 @@ export default function PracticeTab({
                                     canEdit={canEdit}
                                     onUpload={uploadFiles}
                                     onDelete={removePhoto}
+                                    onTextChange={updateChecklistText}
+                                    onTextBlur={saveChecklistItem}
                                 />
                             </AccordionContent>
                         </AccordionItem>

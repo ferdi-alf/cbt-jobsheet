@@ -11,6 +11,8 @@ class PracticeChecklist extends Model
     protected $fillable = [
         'practice_rule_id',
         'title',
+        'standar',
+        'keterangan',
         'order',
     ];
 
