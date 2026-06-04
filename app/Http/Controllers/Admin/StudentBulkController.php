@@ -13,43 +13,45 @@ class StudentBulkController extends Controller
 {
     public function store(StudentBulkStoreRequest $request)
     {
-        $data = $request->validated();
-
+        $data    = $request->validated();
         $kelasId = (int) $data['kelas_id'];
         $students = $data['students'];
-
-        $created = [];
+        $created  = [];
 
         DB::transaction(function () use ($students, $kelasId, &$created) {
             foreach ($students as $s) {
+                $nisn = $s['nisn'];
+
+                $username = filled($s['username'] ?? '') ? $s['username'] : 'siswa_' . $nisn;
+                $email    = filled($s['email']    ?? '') ? $s['email']    : $nisn . '@student.local';
+                $password = filled($s['password'] ?? '') ? $s['password'] : $nisn;
+                $gender   = filled($s['gender']   ?? '') ? $s['gender']   : 'laki-laki';
+                $phone    = $s['phone'] ?? '';
+
                 $user = User::create([
-                    'name' => $s['username'],
-                    'email' => $s['email'],
-                    'password' => Hash::make($s['password']),
-                    'role' => 'siswa',
-                    'avatar_path' => null,
+                    'name'     => $username,
+                    'email'    => $email,
+                    'password' => Hash::make($password),
+                    'role'     => 'siswa',
                 ]);
 
                 SiswaProfile::create([
-                    'user_id' => $user->id,
+                    'user_id'   => $user->id,
                     'full_name' => $s['full_name'],
-                    'nisn' => $s['nisn'],
-                    'gender' => $s['gender'],
-                    'phone' => $s['phone'],
-                    'kelas_id' => $kelasId,
+                    'nisn'      => $nisn,
+                    'gender'    => $gender,
+                    'phone'     => $phone,
+                    'kelas_id'  => $kelasId,
                 ]);
 
-                $created[] = ['id' => $user->id, 'email' => $user->email];
+                $created[] = ['id' => $user->id, 'email' => $email];
             }
         });
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'created_count' => count($created),
-                'created' => $created,
-            ],
-            'error' => null,
+            'data'    => ['created_count' => count($created), 'created' => $created],
+            'error'   => null,
         ], 201);
     }
 }

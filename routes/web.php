@@ -14,6 +14,8 @@ use App\Http\Controllers\Admin\MapelController;
 use App\Http\Controllers\Admin\MapelGuruController;
 use App\Http\Controllers\Admin\StudentBulkController;
 use App\Http\Controllers\Admin\StudentController as AdminStudentController;
+use App\Http\Controllers\Auth\SiswaPasswordResetController;
+use App\Http\Controllers\Auth\SiswaRegisterController;
 use App\Http\Controllers\Petugas\MateriController;
 use App\Http\Controllers\Petugas\PracticeRuleController;
 use App\Http\Controllers\Petugas\StudentController as PetugasStudentController;
@@ -35,6 +37,31 @@ Route::get('/', function () {
 Route::get('/dashboard', DashboardController::class)
     ->middleware(['auth'])
     ->name('dashboard');
+
+Route::post('/api/siswa/verify-identity', [SiswaRegisterController::class, 'verifyIdentity'])
+    ->name('api.siswa.verify-identity');
+
+Route::middleware('guest')->group(function () {
+    Route::get('/siswa/register',
+        fn () => inertia('Auth/SiswaRegister'))
+        ->name('siswa.register');
+
+    Route::post('/siswa/register',
+        [SiswaRegisterController::class, 'store'])
+        ->name('siswa.register.store');
+});
+
+
+Route::post('/api/siswa/verify-for-reset', [SiswaPasswordResetController::class, 'verifyIdentity'])
+    ->name('api.siswa.verify-for-reset');
+
+Route::get('/siswa/reset-password',
+    fn () => inertia('Auth/SiswaResetPassword'))
+    ->name('siswa.reset-password');
+
+Route::post('/siswa/reset-password',
+    [SiswaPasswordResetController::class, 'reset'])
+    ->name('siswa.reset-password.store');
 
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/users', fn () => inertia('Admin/Users/Index'))->name('users.index');

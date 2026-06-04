@@ -13,6 +13,48 @@ import type { useBulkGroups } from "@/hooks/bulk/useBulkGroups";
 
 type BulkHook = ReturnType<typeof useBulkGroups<BulkStudentInput>>;
 
+const FIELDS: {
+    key: keyof BulkStudentInput;
+    label: string;
+    required?: boolean;
+    hint: string;
+    type?: string;
+}[] = [
+    {
+        key: "nisn",
+        label: "NISN",
+        required: true,
+        hint: "Nomor Induk Siswa Nasional — wajib diisi, harus unik.",
+    },
+    {
+        key: "full_name",
+        label: "Nama Lengkap",
+        required: true,
+        hint: "Nama siswa sesuai dokumen resmi.",
+    },
+    {
+        key: "username",
+        label: "Username",
+        hint: "Opsional. Jika kosong, dibuat otomatis dari NISN (siswa_[nisn]).",
+    },
+    {
+        key: "email",
+        label: "Email",
+        hint: "Opsional. Jika kosong, dibuat otomatis ([nisn]@student.local).",
+    },
+    {
+        key: "password",
+        label: "Password",
+        type: "password",
+        hint: "Opsional. Jika kosong, NISN digunakan sebagai password awal.",
+    },
+    {
+        key: "phone",
+        label: "No. HP",
+        hint: "Opsional. Nomor telepon siswa.",
+    },
+];
+
 export default function BulkStudentFields({
     item,
     idx,
@@ -26,95 +68,75 @@ export default function BulkStudentFields({
         bulk.getFieldError(idx, field);
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Field
-                label="Username"
-                value={item.username}
-                onChange={(v) => bulk.update(idx, { username: v })}
-                error={err("username")}
-            />
-            <Field
-                label="Email"
-                value={item.email}
-                onChange={(v) => bulk.update(idx, { email: v })}
-                error={err("email")}
-            />
-            <Field
-                label="Password"
-                type="password"
-                value={item.password}
-                onChange={(v) => bulk.update(idx, { password: v })}
-                error={err("password")}
-            />
-            <Field
-                label="Nama Lengkap"
-                value={item.full_name}
-                onChange={(v) => bulk.update(idx, { full_name: v })}
-                error={err("full_name")}
-            />
-            <Field
-                label="NISN"
-                value={item.nisn}
-                onChange={(v) => bulk.update(idx, { nisn: v })}
-                error={err("nisn")}
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {FIELDS.map(({ key, label, required, hint, type }) => (
+                <div key={key} className="space-y-1">
+                    <Label>
+                        {label}
+                        {required ? (
+                            <span className="text-destructive ml-1">*</span>
+                        ) : (
+                            <span className="ml-1 text-xs font-normal text-muted-foreground">
+                                (opsional)
+                            </span>
+                        )}
+                    </Label>
+                    <Input
+                        type={type ?? "text"}
+                        value={(item[key] as string) ?? ""}
+                        onChange={(e) =>
+                            bulk.update(idx, { [key]: e.target.value } as any)
+                        }
+                        className={cn(err(key) && "border-destructive")}
+                        placeholder={
+                            required
+                                ? `Masukkan ${label.toLowerCase()}...`
+                                : "Biarkan kosong untuk auto-generate"
+                        }
+                    />
+                    <p className="text-[11px] text-muted-foreground leading-tight">
+                        {hint}
+                    </p>
+                    {err(key) && (
+                        <div className="text-xs text-destructive">
+                            {err(key)}
+                        </div>
+                    )}
+                </div>
+            ))}
 
             <div className="space-y-1">
-                <Label>Gender</Label>
+                <Label>
+                    Jenis Kelamin
+                    <span className="ml-1 text-xs font-normal text-muted-foreground">
+                        (opsional)
+                    </span>
+                </Label>
                 <Select
-                    value={item.gender}
-                    onValueChange={(v: any) => bulk.update(idx, { gender: v })}
+                    value={item.gender || ""}
+                    onValueChange={(v) =>
+                        bulk.update(idx, { gender: v as any })
+                    }
                 >
                     <SelectTrigger
                         className={cn(err("gender") && "border-destructive")}
                     >
-                        <SelectValue placeholder="Pilih gender" />
+                        <SelectValue placeholder="Default: laki-laki" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="laki-laki">Laki-laki</SelectItem>
                         <SelectItem value="perempuan">Perempuan</SelectItem>
                     </SelectContent>
                 </Select>
+                <p className="text-[11px] text-muted-foreground">
+                    Opsional. Default laki-laki jika tidak dipilih.
+                </p>
                 {err("gender") && (
                     <div className="text-xs text-destructive">
                         {err("gender")}
                     </div>
                 )}
             </div>
-
-            <Field
-                label="Phone"
-                value={item.phone}
-                onChange={(v) => bulk.update(idx, { phone: v })}
-                error={err("phone")}
-            />
-        </div>
-    );
-}
-
-function Field({
-    label,
-    value,
-    onChange,
-    error,
-    type,
-}: {
-    label: string;
-    value: string;
-    onChange: (v: string) => void;
-    error?: string | null;
-    type?: string;
-}) {
-    return (
-        <div className="space-y-1">
-            <Label>{label}</Label>
-            <Input
-                type={type ?? "text"}
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                className={cn(error && "border-destructive")}
-            />
-            {error && <div className="text-xs text-destructive">{error}</div>}
         </div>
     );
 }

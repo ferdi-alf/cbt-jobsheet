@@ -33,7 +33,6 @@ export default function StudentsIndex() {
             align: "center" as const,
             render: (v: number) => <Badge variant="secondary">{v}</Badge>,
         },
-        { key: "created_at", label: "Created At" },
     ];
 
     const actions = (row: StudentRow) => {

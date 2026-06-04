@@ -1,6 +1,7 @@
 import AdminLayout from "@/Layouts/AdminLayout";
 import { Head } from "@inertiajs/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Button } from "@/Components/ui/button";
 import { Label } from "@/Components/ui/label";
@@ -12,6 +13,7 @@ import {
     SelectValue,
 } from "@/Components/ui/select";
 import { toast } from "sonner";
+import { Download, Upload, Info } from "lucide-react";
 
 import BulkGroups from "@/Components/bulk/BulkGroups";
 import { useBulkGroups } from "@/hooks/bulk/useBulkGroups";
@@ -20,12 +22,12 @@ import type { BulkStudentInput } from "@/features/students-bulk/types";
 import { useStudentBulkMutations } from "@/features/students-bulk/hooks/useStudentBulkMutations";
 
 const emptyStudent = (): BulkStudentInput => ({
+    nisn: "",
+    full_name: "",
     username: "",
     email: "",
     password: "",
-    full_name: "",
-    nisn: "",
-    gender: "laki-laki",
+    gender: "",
     phone: "",
 });
 
@@ -36,13 +38,120 @@ async function fetchKelasLookups() {
     return json.data as Array<{ id: number; name: string }>;
 }
 
+const TEMPLATE_HEADERS = [
+    "NISN *",
+    "Nama Lengkap *",
+    "Username",
+    "Email",
+    "Password",
+    "Jenis Kelamin (laki-laki / perempuan)",
+    "No. HP",
+];
+
+const TEMPLATE_NOTES = [
+    "Wajib. Contoh: 0012345678",
+    "Wajib. Sesuai dokumen resmi",
+    "Opsional. Default: siswa_[nisn]",
+    "Opsional. Default: [nisn]@student.local",
+    "Opsional. Default: [nisn]",
+    "Opsional. Default: laki-laki",
+    "Opsional. Contoh: 08123456789",
+];
+
+const TEMPLATE_EXAMPLE = [
+    "0012345678",
+    "Budi Santoso",
+    "budisantoso",
+    "budi@example.com",
+    "password123",
+    "laki-laki",
+    "081234567890",
+];
+
+function downloadTemplate() {
+    const wb = XLSX.utils.book_new();
+
+    const ws = XLSX.utils.aoa_to_sheet([
+        TEMPLATE_HEADERS,
+        TEMPLATE_NOTES,
+        TEMPLATE_EXAMPLE,
+    ]);
+
+    // Column widths
+    ws["!cols"] = [
+        { wch: 16 },
+        { wch: 28 },
+        { wch: 20 },
+        { wch: 28 },
+        { wch: 18 },
+        { wch: 36 },
+        { wch: 18 },
+    ];
+
+    // Freeze top 2 rows
+    ws["!freeze"] = { xSplit: 0, ySplit: 2 };
+
+    XLSX.utils.book_append_sheet(wb, ws, "Siswa");
+    XLSX.writeFile(wb, "template-import-siswa.xlsx");
+}
+
+function parseExcel(file: File): Promise<BulkStudentInput[]> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const wb = XLSX.read(data, { type: "array" });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json<any[]>(ws, {
+                    header: 1,
+                    defval: "",
+                }) as any[][];
+
+                const dataRows = rows
+                    .slice(2)
+                    .filter(
+                        (row) =>
+                            String(row[0] ?? "").trim() ||
+                            String(row[1] ?? "").trim(),
+                    );
+
+                const students: BulkStudentInput[] = dataRows.map((row) => ({
+                    nisn: String(row[0] ?? "").trim(),
+                    full_name: String(row[1] ?? "").trim(),
+                    username: String(row[2] ?? "").trim(),
+                    email: String(row[3] ?? "").trim(),
+                    password: String(row[4] ?? "").trim(),
+                    gender:
+                        (String(row[5] ?? "")
+                            .trim()
+                            .toLowerCase() as any) || "",
+                    phone: String(row[6] ?? "").trim(),
+                }));
+
+                resolve(students.length ? students : [emptyStudent()]);
+            } catch (err) {
+                reject(
+                    new Error(
+                        "Gagal membaca file Excel. Pastikan format sesuai template.",
+                    ),
+                );
+            }
+        };
+        reader.onerror = () => reject(new Error("Gagal membaca file."));
+        reader.readAsArrayBuffer(file);
+    });
+}
+
 export default function StudentsCreate() {
     const { submit } = useStudentBulkMutations();
+    const importRef = useRef<HTMLInputElement>(null);
 
     const [kelasOptions, setKelasOptions] = useState<
         Array<{ id: number; name: string }>
     >([]);
     const [kelasId, setKelasId] = useState<string>("");
+    const [importing, setImporting] = useState(false);
 
     const bulk = useBulkGroups<BulkStudentInput>({
         initialItem: emptyStudent,
@@ -56,58 +165,69 @@ export default function StudentsCreate() {
     }, []);
 
     const canSubmit = useMemo(
-        () => !!kelasId && bulk.items.length > 0,
-        [kelasId, bulk.items.length],
+        () =>
+            !!kelasId &&
+            bulk.items.some((s) => s.nisn.trim() && s.full_name.trim()),
+        [kelasId, bulk.items],
     );
 
-    const clientValidate = () => {
-        const errs: Record<string, string[]> = {};
+    const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
 
-        bulk.items.forEach((s, idx) => {
-            const req = (field: keyof BulkStudentInput, msg: string) => {
-                const val = String((s as any)[field] ?? "").trim();
-                if (!val) errs[`students.${idx}.${field}`] = [msg];
-            };
-
-            req("username", "Username wajib diisi");
-            req("email", "Email wajib diisi");
-            req("password", "Password wajib diisi");
-            req("full_name", "Nama lengkap wajib diisi");
-            req("nisn", "NISN wajib diisi");
-            req("gender", "Gender wajib diisi");
-            req("phone", "Phone wajib diisi");
-        });
-
-        if (Object.keys(errs).length) {
-            bulk.setErrors(errs);
-            bulk.scrollToFirstError();
-            toast.error("Masih ada field yang kosong");
-            return false;
+        setImporting(true);
+        try {
+            const students = await parseExcel(file);
+            bulk.setItems(students);
+            bulk.clearErrors();
+            toast.success(
+                `${students.length} baris berhasil diimpor. Periksa data sebelum menyimpan.`,
+            );
+        } catch (err: any) {
+            toast.error(err?.message ?? "Gagal mengimpor file.");
+        } finally {
+            setImporting(false);
         }
-
-        return true;
     };
 
+    // ── Submit ──────────────────────────────────────────────────────────────
     const onSubmit = async () => {
         bulk.clearErrors();
 
         if (!kelasId) {
-            toast.error("Pilih kelas dulu");
+            toast.error("Pilih kelas terlebih dahulu sebelum menyimpan.");
             return;
         }
 
-        if (!clientValidate()) return;
+        // Client-side: hanya nisn & full_name wajib
+        const errs: Record<string, string[]> = {};
+        bulk.items.forEach((s, idx) => {
+            if (!s.nisn.trim())
+                errs[`students.${idx}.nisn`] = ["NISN wajib diisi."];
+            if (!s.full_name.trim())
+                errs[`students.${idx}.full_name`] = [
+                    "Nama lengkap wajib diisi.",
+                ];
+        });
+        if (Object.keys(errs).length) {
+            bulk.setErrors(errs);
+            bulk.scrollToFirstError();
+            toast.error("Masih ada field wajib yang kosong.");
+            return;
+        }
 
         try {
             await submit({
                 kelas_id: Number(kelasId),
                 students: bulk.items.map((s) => ({
-                    ...s,
-                    username: s.username.trim(),
-                    email: s.email.trim(),
-                    full_name: s.full_name.trim(),
                     nisn: s.nisn.trim(),
-                    phone: s.phone.trim(),
+                    full_name: s.full_name.trim(),
+                    username: s.username?.trim() || undefined,
+                    email: s.email?.trim() || undefined,
+                    password: s.password?.trim() || undefined,
+                    gender: s.gender || undefined,
+                    phone: s.phone?.trim() || undefined,
                 })),
             });
 
@@ -116,56 +236,43 @@ export default function StudentsCreate() {
             bulk.clearErrors();
         } catch (e: any) {
             if (e?.status === 422 && e?.payload?.error === "VALIDATION_ERROR") {
-                const errs = (e?.payload?.errors ?? {}) as Record<
+                const serverErrs = (e?.payload?.errors ?? {}) as Record<
                     string,
                     string[]
                 >;
-                bulk.setErrors(errs);
-                bulk.scrollToFirstError();
+                bulk.setErrors(serverErrs);
+                bulk.scrollToFirstError(serverErrs);
 
-                try {
-                    const toastInfo = buildBulkToastFromErrors(
-                        "students",
-                        errs,
-                    );
-                    if (toastInfo) {
-                        toast.error(toastInfo.title, {
-                            description: toastInfo.description,
-                        });
-                    } else {
-                        toast.error("Data tidak valid", {
-                            description:
-                                "Periksa kembali input yang ditandai merah.",
-                        });
-                    }
-                } catch {
-                    toast.error("Data tidak valid", {
-                        description:
-                            "Periksa kembali input yang ditandai merah.",
-                    });
-                }
-
+                const firstKey = Object.keys(serverErrs)[0];
+                const msg = serverErrs[firstKey]?.[0];
+                toast.error(
+                    msg ??
+                        "Data tidak valid. Periksa kembali input yang ditandai merah.",
+                );
                 return;
             }
-
-            toast.error("Gagal menambahkan siswa");
+            toast.error(e?.message ?? "Gagal menambahkan siswa.");
         }
     };
 
     return (
         <AdminLayout>
-            <Head title="Tambah Siswa (Bulk)" />
+            <Head title="Tambah Siswa" />
 
             <Card>
                 <CardHeader>
                     <CardTitle>Tambah Siswa</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="space-y-1 max-w-sm">
-                        <Label>Pilih Kelas</Label>
+
+                <CardContent className="space-y-6">
+                    {/* Kelas selector + warning */}
+                    <div className="space-y-2 max-w-sm fle">
+                        <Label>
+                            Kelas <span className="text-destructive">*</span>
+                        </Label>
                         <Select value={kelasId} onValueChange={setKelasId}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Pilih kelas..." />
+                                <SelectValue placeholder="Pilih kelas siswa..." />
                             </SelectTrigger>
                             <SelectContent>
                                 {kelasOptions.map((k) => (
@@ -175,11 +282,59 @@ export default function StudentsCreate() {
                                 ))}
                             </SelectContent>
                         </Select>
+                        <div className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+                            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                            <span>
+                                Pastikan kelas sudah dipilih sebelum menyimpan.
+                                Semua siswa yang diinput akan dimasukkan ke
+                                kelas ini.
+                            </span>
+                        </div>
                     </div>
 
+                    <div className="flex flex-col gap-2 items-start">
+                        <div className="flex flex-wrap gap-1.5">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={downloadTemplate}
+                            >
+                                <Download className="h-4 w-4 mr-2" />
+                                Download Template Excel
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={importing}
+                                onClick={() => importRef.current?.click()}
+                            >
+                                <Upload className="h-4 w-4 mr-2" />
+                                {importing
+                                    ? "Membaca file..."
+                                    : "Import dari Excel"}
+                            </Button>
+
+                            <input
+                                ref={importRef}
+                                type="file"
+                                accept=".xlsx,.xls"
+                                className="hidden"
+                                onChange={handleImportFile}
+                            />
+                        </div>
+
+                        <p className="text-xs text-muted-foreground">
+                            Import akan menggantikan data yang sedang diinput.
+                            Gunakan template untuk memastikan format kolom
+                            benar.
+                        </p>
+                    </div>
+
+                    {/* Bulk form */}
                     <BulkGroups
-                        title="Kelompok Input Siswa"
-                        addLabel="Tambah Kelompok"
+                        title="Data Siswa"
+                        addLabel="Tambah Siswa"
                         itemsLabelPrefix="Siswa"
                         bulk={bulk}
                         renderItem={(item, idx, api) => (
@@ -188,10 +343,8 @@ export default function StudentsCreate() {
                                 idx={idx}
                                 bulk={{
                                     ...api,
-                                    getFieldError: (
-                                        index: number,
-                                        field: string,
-                                    ) => api.getFieldError(index, field) ?? "",
+                                    getFieldError: (i, f) =>
+                                        api.getFieldError(i, f) ?? "",
                                 }}
                             />
                         )}
@@ -199,7 +352,7 @@ export default function StudentsCreate() {
 
                     <div className="flex justify-end">
                         <Button onClick={onSubmit} disabled={!canSubmit}>
-                            Simpan
+                            Simpan Siswa
                         </Button>
                     </div>
                 </CardContent>
