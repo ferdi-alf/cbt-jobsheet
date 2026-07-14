@@ -73,9 +73,7 @@ export default function PracticeRulesIndex() {
                     </div>
                 </div>
             ),
-        },
-        { key: "created_at", label: "Created At" },
-    ];
+        },    ];
 
     const actions = (row: PracticeRuleRow) => (
         <>

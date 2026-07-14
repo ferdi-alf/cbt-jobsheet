@@ -41,6 +41,39 @@ export async function deletePracticePhoto(photoId: number) {
     return api.del<boolean>(`/api/practice-photos/${photoId}`);
 }
 
+export async function saveSiswaPracticeTools(
+    materiId: number,
+    tools: {
+        rule_tool_id: number | null;
+        kind: "alat" | "bahan";
+        label: string | null;
+        value: string | null;
+    }[],
+) {
+    return api.post<boolean>(`/api/siswa/materis/${materiId}/practice/tools`, {
+        tools,
+    });
+}
+
+export async function uploadPracticeToolPhoto(
+    materiId: number,
+    ruleToolId: number,
+    file: File,
+) {
+    const fd = new FormData();
+    fd.append("photo", file);
+    return api.postForm<{
+        id: number;
+        rule_tool_id: number;
+        view_url: string;
+        uploaded_at?: string | null;
+    }>(`/api/siswa/materis/${materiId}/practice/tools/${ruleToolId}/photo`, fd);
+}
+
+export async function deletePracticeToolPhoto(photoId: number) {
+    return api.del<boolean>(`/api/practice-tool-photos/${photoId}`);
+}
+
 export async function submitPractice(
     materiId: number,
     confirmIncomplete = false,

@@ -22,9 +22,7 @@ export default function MapelsIndex() {
             key: "total_materi",
             label: "Total Materi",
             align: "center" as const,
-        },
-        { key: "created_at", label: "Created At" },
-    ];
+        },    ];
 
     const actions = (row: MapelRow) => (
         <>

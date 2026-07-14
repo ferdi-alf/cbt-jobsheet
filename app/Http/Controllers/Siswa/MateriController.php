@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Siswa\PracticePhotoUploadRequest;
 use App\Http\Requests\Siswa\PracticeSubmitRequest;
 use App\Models\Materi;
+use App\Models\PracticeRuleTool;
 use App\Models\PracticeSubmission;
 use App\Models\PracticeSubmissionApdPhoto;
 use App\Models\PracticeSubmissionItem;
 use App\Models\PracticeSubmissionPhoto;
+use App\Models\PracticeSubmissionToolPhoto;
 use App\Models\Test;
 use App\Models\TestAttempt;
 use App\Models\User;
@@ -137,6 +139,7 @@ class MateriController extends Controller
             'mapel:id,name',
             'practiceRule:id,materi_id,title,deadline_at',
             'practiceRule.checklists:id,practice_rule_id,title,standar,keterangan,order',
+            'practiceRule.tools:id,practice_rule_id,kind,label,order',
         ]);
 
         $submission = PracticeSubmission::query()
@@ -144,12 +147,45 @@ class MateriController extends Controller
                 'apdPhotos:id,submission_id,photo_path,created_at',
                 'items:id,submission_id,checklist_id,note,hasil,keterangan',
                 'items.photos:id,submission_item_id,photo_path,created_at',
+                'tools:id,submission_id,rule_tool_id,kind,label,value,photo_path',
+                'toolPhotos:id,submission_id,rule_tool_id,photo_path',
             ])
             ->where('materi_id', $materi->id)
             ->where('student_user_id', $user->id)
             ->first();
 
         $itemsByChecklist = $submission?->items?->keyBy('checklist_id') ?? collect();
+
+        // Gabungkan baris Alat & Bahan definisi guru + jawaban siswa + foto
+        $submissionTools = $submission?->tools ?? collect();
+        $answersByRuleTool = $submissionTools->whereNotNull('rule_tool_id')->keyBy('rule_tool_id');
+        $photosByRuleTool  = ($submission?->toolPhotos ?? collect())->groupBy('rule_tool_id');
+
+        $toolRows = collect();
+        foreach (($materi->practiceRule?->tools ?? collect()) as $rt) {
+            $ans = $answersByRuleTool->get($rt->id);
+            $toolRows->push([
+                'rule_tool_id' => $rt->id,
+                'kind'         => $rt->kind,
+                'label'        => $rt->label,
+                'value'        => $ans?->value,
+                'is_extra'     => false,
+                'photos'       => ($photosByRuleTool->get($rt->id) ?? collect())->map(fn ($p) => [
+                    'id'       => $p->id,
+                    'view_url' => route('api.practice-tool-photos.show', ['photo' => $p->id]),
+                ])->values(),
+            ]);
+        }
+        foreach ($submissionTools->whereNull('rule_tool_id') as $st) {
+            $toolRows->push([
+                'rule_tool_id' => null,
+                'kind'         => $st->kind,
+                'label'        => $st->label,
+                'value'        => $st->value,
+                'is_extra'     => true,
+                'photos'       => [],
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -164,6 +200,7 @@ class MateriController extends Controller
                 'pdf' => [
                     'view_url'     => route('api.siswa.materis.pdf', ['materi' => $materi->id]),
                     'download_url' => route('api.siswa.materis.download', ['materi' => $materi->id]),
+                    'ext'          => $materi->pdf_path ? strtolower(pathinfo($materi->pdf_path, PATHINFO_EXTENSION)) : null,
                 ],
                 'practice' => [
                     'rule_id'        => $materi->practiceRule?->id,
@@ -176,6 +213,9 @@ class MateriController extends Controller
                     'submitted_at'   => optional($submission?->submitted_at)->toDateTimeString(),
                     'graded_at'      => optional($submission?->graded_at)->toDateTimeString(),
                     'total_score'    => $submission?->total_score,
+                    'score_alat_bahan' => $submission?->score_alat_bahan,
+                    'score_sop_k3l'    => $submission?->score_sop_k3l,
+                    'score_praktik'    => $submission?->score_praktik,
                     'feedback'       => $submission?->feedback,
                     'apd_photos'     => ($submission?->apdPhotos ?? collect())->map(fn ($p) => [
                         'id'          => $p->id,
@@ -200,6 +240,7 @@ class MateriController extends Controller
                             ])->values(),
                         ];
                     })->values() ?? [],
+                    'tools' => $toolRows->values(),
                 ],
             ],
             'error' => null,
@@ -289,6 +330,94 @@ class MateriController extends Controller
         );
     }
 
+    public function storeToolPhoto(Request $request, Materi $materi, PracticeRuleTool $ruleTool)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->isSiswa(), 403);
+        $this->authorizeStudentMateri($user, $materi);
+
+        $request->validate(['photo' => ['required', 'image', 'max:5120']]);
+
+        $materi->loadMissing('practiceRule');
+        abort_if(!$materi->practiceRule, 422, 'Praktek untuk materi ini belum tersedia.');
+        abort_if(
+            (int) $ruleTool->practice_rule_id !== (int) $materi->practiceRule->id,
+            422,
+            'Alat/Bahan tidak valid.',
+        );
+
+        $submission = PracticeSubmission::firstOrCreate(
+            ['materi_id' => $materi->id, 'student_user_id' => $user->id],
+            ['status' => 'draft', 'is_late' => false],
+        );
+
+        abort_if(in_array($submission->status, ['submitted', 'graded'], true), 422, 'Submission sudah dikunci.');
+
+        $path = $request->file('photo')->store("practice-tools/{$submission->id}", 'local');
+
+        $photo = $submission->toolPhotos()->create([
+            'rule_tool_id' => $ruleTool->id,
+            'photo_path'   => $path,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id'           => $photo->id,
+                'rule_tool_id' => $ruleTool->id,
+                'view_url'     => route('api.practice-tool-photos.show', ['photo' => $photo->id]),
+                'uploaded_at'  => optional($photo->created_at)->toDateTimeString(),
+            ],
+            'error' => null,
+        ]);
+    }
+
+    public function destroyToolPhoto(Request $request, PracticeSubmissionToolPhoto $photo)
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $photo->loadMissing('submission');
+        abort_if((int) $photo->submission->student_user_id !== (int) $user->id, 403);
+        abort_if($photo->submission->status !== 'draft', 422, 'Foto tidak bisa dihapus setelah submission dikirim.');
+
+        Storage::disk('local')->delete($photo->photo_path);
+        $photo->delete();
+
+        return response()->json(['success' => true, 'data' => true, 'error' => null]);
+    }
+
+    public function viewToolPhoto(Request $request, PracticeSubmissionToolPhoto $photo)
+    {
+        $user = $request->user();
+        abort_unless($user, 403);
+
+        $photo->loadMissing('submission.materi:id,kelas_id,mapel_id');
+        $submission = $photo->submission;
+        $materi     = $submission?->materi;
+
+        $allowed = match (true) {
+            $user->isAdmin() => true,
+            $user->isGuru()  => (function () use ($user, $materi) {
+                $user->loadMissing('guruProfile:user_id,kelas_id,mapel_id');
+                $gp = $user->guruProfile;
+                return $gp
+                    && (int) $gp->kelas_id === (int) $materi?->kelas_id
+                    && (int) $gp->mapel_id === (int) $materi?->mapel_id;
+            })(),
+            $user->isSiswa() => (int) $submission->student_user_id === (int) $user->id,
+            default          => false,
+        };
+
+        abort_if(!$allowed, 403);
+        abort_if(!$photo->photo_path || !Storage::disk('local')->exists($photo->photo_path), 404);
+
+        return response()->file(
+            Storage::disk('local')->path($photo->photo_path),
+            ['Cache-Control' => 'private, max-age=60'],
+        );
+    }
+
 
     public function updateItem(Request $request, Materi $materi, int $checklistId)
     {
@@ -326,6 +455,57 @@ class MateriController extends Controller
         return response()->json(['success' => true, 'data' => true, 'error' => null]);
     }
 
+    public function saveTools(Request $request, Materi $materi)
+    {
+        $user = $request->user();
+        abort_unless($user && $user->isSiswa(), 403);
+        $this->authorizeStudentMateri($user, $materi);
+
+        $data = $request->validate([
+            'tools'                => ['present', 'array'],
+            'tools.*.rule_tool_id' => ['nullable', 'integer'],
+            'tools.*.kind'         => ['required', 'in:alat,bahan'],
+            'tools.*.label'        => ['nullable', 'string', 'max:255'],
+            'tools.*.value'        => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $materi->loadMissing('practiceRule.tools:id,practice_rule_id,kind,label');
+        abort_if(!$materi->practiceRule, 422, 'Praktek belum tersedia.');
+
+        $ruleToolsById = $materi->practiceRule->tools->keyBy('id');
+
+        $submission = PracticeSubmission::firstOrCreate(
+            ['materi_id' => $materi->id, 'student_user_id' => $user->id],
+            ['status' => 'draft', 'is_late' => false],
+        );
+
+        abort_if(in_array($submission->status, ['submitted', 'graded'], true), 422, 'Submission sudah dikunci.');
+
+        DB::transaction(function () use ($submission, $data, $ruleToolsById) {
+            $submission->tools()->delete();
+
+            $rows = collect($data['tools'])->values()->map(function ($t, $idx) use ($ruleToolsById) {
+                $ruleTool = isset($t['rule_tool_id'])
+                    ? $ruleToolsById->get((int) $t['rule_tool_id'])
+                    : null;
+
+                return [
+                    'rule_tool_id' => $ruleTool?->id,
+                    'kind'         => $ruleTool?->kind ?? $t['kind'],
+                    'label'        => $ruleTool?->label ?? ($t['label'] ?? null),
+                    'value'        => filled($t['value'] ?? null) ? $t['value'] : null,
+                    'order'        => $idx + 1,
+                ];
+            })->all();
+
+            if (!empty($rows)) {
+                $submission->tools()->createMany($rows);
+            }
+        });
+
+        return response()->json(['success' => true, 'data' => true, 'error' => null]);
+    }
+
     public function pdf(Request $request, Materi $materi)
     {
         $user = $request->user();
@@ -334,10 +514,12 @@ class MateriController extends Controller
         $this->authorizeStudentMateri($user, $materi);
         abort_if(!$materi->pdf_path || !Storage::disk('public')->exists($materi->pdf_path), 404);
 
+        $mime = Storage::disk('public')->mimeType($materi->pdf_path) ?: 'application/octet-stream';
+
         return response()->file(
             Storage::disk('public')->path($materi->pdf_path),
             [
-                'Content-Type' => 'application/pdf',
+                'Content-Type' => $mime,
                 'Cache-Control' => 'private, max-age=60',
             ],
         );
@@ -352,16 +534,16 @@ class MateriController extends Controller
         abort_if(!$materi->pdf_path || !Storage::disk('public')->exists($materi->pdf_path), 404);
 
         $materi->loadMissing(['kelas:id,name', 'mapel:id,name']);
+        $ext = strtolower(pathinfo($materi->pdf_path, PATHINFO_EXTENSION)) ?: 'pdf';
         $filename = Str::slug(
             ($materi->title ?: 'materi') . '-' .
             ($materi->mapel?->name ?: 'mapel') . '-' .
             ($materi->kelas?->name ?: 'kelas')
-        ) . '.pdf';
+        ) . '.' . $ext;
 
         return response()->download(
             Storage::disk('public')->path($materi->pdf_path),
-            $filename,
-            ['Content-Type' => 'application/pdf'],
+            $filename
         );
     }
 

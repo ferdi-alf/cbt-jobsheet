@@ -11,6 +11,7 @@ export type CreatePracticeRulePayload = {
     title: string;
     deadline_at?: string | null;
     checklists: { title: string }[];
+    tools?: { kind: "alat" | "bahan"; label: string }[];
 };
 
 export type UpdatePracticeRulePayload = Partial<CreatePracticeRulePayload>;

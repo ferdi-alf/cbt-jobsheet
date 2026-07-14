@@ -96,6 +96,9 @@ class PracticeResultController extends Controller
                 'status'       => $submission->status,
                 'submitted_at' => optional($submission->submitted_at)->toDateTimeString(),
                 'total_score'  => $submission->total_score,
+                'score_alat_bahan' => $submission->score_alat_bahan,
+                'score_sop_k3l'    => $submission->score_sop_k3l,
+                'score_praktik'    => $submission->score_praktik,
                 'graded_at'    => optional($submission->graded_at)->toDateTimeString(),
                 'feedback'     => $submission->feedback,
                 'materi_title' => $submission->materi?->title,
@@ -119,13 +122,45 @@ class PracticeResultController extends Controller
             'materi.practiceRule:id,materi_id,title,deadline_at',
             'materi.practiceRule.apdPhotos:id,submission_id,photo_path,created_at',
             'materi.practiceRule.checklists:id,practice_rule_id,title,standar,keterangan,order',
+            'materi.practiceRule.tools:id,practice_rule_id,kind,label,order',
             'items:id,submission_id,checklist_id,note,score,hasil,keterangan',
             'items.photos:id,submission_item_id,photo_path,created_at',
+            'tools:id,submission_id,rule_tool_id,kind,label,value,photo_path',
+            'toolPhotos:id,submission_id,rule_tool_id,photo_path',
             'grader:id,name,email,role',
             'grader.guruProfile:user_id,full_name',
         ]);
 
         $itemsByChecklist = $submission->items->keyBy('checklist_id');
+
+        // Gabungkan baris Alat & Bahan definisi guru + jawaban siswa + foto
+        $submissionTools   = $submission->tools ?? collect();
+        $answersByRuleTool = $submissionTools->whereNotNull('rule_tool_id')->keyBy('rule_tool_id');
+        $photosByRuleTool  = ($submission->toolPhotos ?? collect())->groupBy('rule_tool_id');
+
+        $toolRows = collect();
+        foreach (($submission->materi?->practiceRule?->tools ?? collect()) as $rt) {
+            $ans = $answersByRuleTool->get($rt->id);
+            $toolRows->push([
+                'kind'     => $rt->kind,
+                'label'    => $rt->label,
+                'value'    => $ans?->value,
+                'is_extra' => false,
+                'photos'   => ($photosByRuleTool->get($rt->id) ?? collect())->map(fn ($p) => [
+                    'id'       => $p->id,
+                    'view_url' => route('api.practice-tool-photos.show', ['photo' => $p->id]),
+                ])->values(),
+            ]);
+        }
+        foreach ($submissionTools->whereNull('rule_tool_id') as $st) {
+            $toolRows->push([
+                'kind'     => $st->kind,
+                'label'    => $st->label,
+                'value'    => $st->value,
+                'is_extra' => true,
+                'photos'   => [],
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -134,7 +169,10 @@ class PracticeResultController extends Controller
                 'status'       => $submission->status,
                 'submitted_at' => optional($submission->submitted_at)->toDateTimeString(),
                 'graded_at'    => optional($submission->graded_at)->toDateTimeString(),
-                'total_score'  => $submission->total_score,
+                'total_score'      => $submission->total_score,
+                'score_alat_bahan' => $submission->score_alat_bahan,
+                'score_sop_k3l'    => $submission->score_sop_k3l,
+                'score_praktik'    => $submission->score_praktik,
                 'feedback'     => $submission->feedback,
                 'student'      => [
                     'id'        => $submission->student?->id,
@@ -185,6 +223,7 @@ class PracticeResultController extends Controller
                                 ])->values(),
                             ];
                         })->values() ?? [],
+                    'tools' => $toolRows->values(),
                 ],
             ],
             'error' => null,
@@ -203,22 +242,24 @@ class PracticeResultController extends Controller
         $allowedChecklistIds = $submission->materi?->practiceRule?->checklists
             ?->pluck('id')->map(fn ($id) => (int) $id)->all() ?? [];
 
-        // Hitung rata-rata dari semua score item
-        $scores = collect($data['notes'] ?? [])
-            ->filter(fn ($row) => in_array((int) $row['checklist_id'], $allowedChecklistIds, true))
-            ->pluck('score')
-            ->map(fn ($s) => (int) $s);
+        // 3 komponen nilai (manual) → total berbobot 25% / 15% / 60%
+        $scoreAlatBahan = (int) $data['score_alat_bahan'];
+        $scoreSopK3l    = (int) $data['score_sop_k3l'];
+        $scorePraktik   = (int) $data['score_praktik'];
 
-        $avgScore = $scores->count() > 0
-            ? (int) round($scores->average())
-            : 0;
+        $totalScore = (int) round(
+            $scoreAlatBahan * 0.25 + $scoreSopK3l * 0.15 + $scorePraktik * 0.60
+        );
 
-        DB::transaction(function () use ($submission, $data, $user, $allowedChecklistIds, $avgScore) {
-            $submission->status      = 'graded';
-            $submission->total_score = $avgScore;
-            $submission->feedback    = $data['feedback'] ?? null;
-            $submission->graded_by   = $user->id;
-            $submission->graded_at   = now();
+        DB::transaction(function () use ($submission, $data, $user, $allowedChecklistIds, $scoreAlatBahan, $scoreSopK3l, $scorePraktik, $totalScore) {
+            $submission->status           = 'graded';
+            $submission->score_alat_bahan = $scoreAlatBahan;
+            $submission->score_sop_k3l    = $scoreSopK3l;
+            $submission->score_praktik    = $scorePraktik;
+            $submission->total_score      = $totalScore;
+            $submission->feedback         = $data['feedback'] ?? null;
+            $submission->graded_by        = $user->id;
+            $submission->graded_at        = now();
             $submission->save();
 
             foreach (($data['notes'] ?? []) as $row) {
@@ -229,7 +270,7 @@ class PracticeResultController extends Controller
                     ['submission_id' => $submission->id, 'checklist_id' => $checklistId],
                     [
                         'note'  => filled($row['note'] ?? null) ? $row['note'] : null,
-                        'score' => (int) $row['score'],
+                        'score' => isset($row['score']) ? (int) $row['score'] : null,
                     ]
                 );
             }

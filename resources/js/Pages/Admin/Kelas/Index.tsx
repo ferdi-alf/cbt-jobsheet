@@ -65,9 +65,7 @@ export default function KelasIndex() {
             label: "Guru",
             align: "center" as const,
             render: (v: number) => <Badge variant="outline">{v}</Badge>,
-        },
-        { key: "created_at", label: "Created At" },
-    ];
+        },    ];
 
     const actions = (row: KelasRow) => {
         const disableDelete = row.total_students > 0 || row.total_guru > 0;

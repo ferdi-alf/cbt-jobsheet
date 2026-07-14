@@ -63,6 +63,7 @@ class MateriController extends Controller
                 'id' => $m->creator->id, 'name' => $m->creator->name, 'email' => $m->creator->email,
             ] : null,
             'pdf_url'      => $m->pdf_path ? Storage::disk('public')->url($m->pdf_path) : null,
+            'file_ext'     => $m->pdf_path ? strtolower(pathinfo($m->pdf_path, PATHINFO_EXTENSION)) : null,
             'download_url' => route('api.materis.download', ['materi' => $m->id]),
             'created_at'   => optional($m->created_at)->toDateTimeString(),
         ])->values();
@@ -96,6 +97,7 @@ class MateriController extends Controller
                 'pdf' => [
                     'url'          => $materi->pdf_path ? Storage::disk('public')->url($materi->pdf_path) : null,
                     'download_url' => route('api.materis.download', ['materi' => $materi->id]),
+                    'ext'          => $materi->pdf_path ? strtolower(pathinfo($materi->pdf_path, PATHINFO_EXTENSION)) : null,
                 ],
                 'created_at' => optional($materi->created_at)->toDateTimeString(),
             ],
@@ -187,16 +189,16 @@ class MateriController extends Controller
         abort_if(!$materi->pdf_path || !Storage::disk('public')->exists($materi->pdf_path), 404);
 
         $materi->loadMissing(['kelas:id,name', 'mapel:id,name']);
+        $ext = strtolower(pathinfo($materi->pdf_path, PATHINFO_EXTENSION)) ?: 'pdf';
         $filename = Str::slug(
             ($materi->title ?: 'materi') . '-' .
             ($materi->mapel?->name ?: 'mapel') . '-' .
             ($materi->kelas?->name ?: 'kelas')
-        ) . '.pdf';
+        ) . '.' . $ext;
 
         return response()->download(
             Storage::disk('public')->path($materi->pdf_path),
-            $filename,
-            ['Content-Type' => 'application/pdf']
+            $filename
         );
     }
 

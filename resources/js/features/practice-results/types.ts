@@ -24,6 +24,9 @@ export type PracticeResultDetail = {
     submitted_at: string | null;
     graded_at: string | null;
     total_score: number | null;
+    score_alat_bahan?: number | null;
+    score_sop_k3l?: number | null;
+    score_praktik?: number | null;
     feedback?: string | null;
     apd_photos: Array<{
         id: number;
@@ -63,14 +66,24 @@ export type PracticeResultDetail = {
                 uploaded_at?: string | null;
             }>;
         }>;
+        tools: Array<{
+            kind: "alat" | "bahan";
+            label: string | null;
+            value: string | null;
+            is_extra: boolean;
+            photos?: Array<{ id: number; view_url: string }>;
+        }>;
     };
 };
 
 export type GradePracticePayload = {
     feedback?: string | null;
-    notes: Array<{
+    score_alat_bahan: number;
+    score_sop_k3l: number;
+    score_praktik: number;
+    notes?: Array<{
         checklist_id: number;
-        score: number;
+        score?: number | null;
         note?: string | null;
     }>;
 };

@@ -4,7 +4,7 @@ export default function DesktopTopbar() {
             className="hidden md:flex items-center gap-4 px-6 shrink-0"
             style={{
                 background:
-                    "linear-gradient(135deg, #1a6abf 0%, #2e8de0 50%, #3291ff 100%)",
+                    "linear-gradient(135deg, #004A80 0%, #0072AD 50%, #0090D0 100%)",
                 height: "62px",
             }}
         >

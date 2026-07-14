@@ -24,7 +24,7 @@ class MateriUpdateRequest extends FormRequest
             'k3_alat_bahan'      => ['sometimes', 'nullable', 'string'],
             'elemen'             => ['sometimes', 'nullable', 'string'],
             'tujuan_pembelajaran' => ['sometimes', 'nullable', 'string'],
-            'pdf'            => ['sometimes', 'file', 'mimes:pdf', 'max:10240'],
+            'pdf'            => ['sometimes', 'file', 'mimes:pdf,doc,docx,ppt,pptx,png,jpg,jpeg', 'max:10240'],
         ];
 
         if ($isGuru) {

@@ -49,7 +49,11 @@ export type MateriDetail = {
         name?: string | null;
         email?: string | null;
     } | null;
-    pdf?: { download_url?: string | null; url: string | null } | null;
+    pdf?: {
+        download_url?: string | null;
+        url: string | null;
+        ext?: string | null;
+    } | null;
     export_results_zip_url?: string | null;
     created_at?: string;
 };

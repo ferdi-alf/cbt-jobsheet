@@ -122,7 +122,8 @@ class PracticeRuleController extends Controller
 
         if ($mode === 'edit') {
             $practice_rule->load([
-                'checklists:id,practice_rule_id,title,order',
+                'checklists',
+                'tools:id,practice_rule_id,kind,label,order',
                 'materi:id,title,kelas_id,mapel_id',
                 'materi.kelas:id,name',
                 'materi.mapel:id,name',
@@ -143,6 +144,14 @@ class PracticeRuleController extends Controller
                             'standar'     => $c->standar,
                             'keterangan'  => $c->keterangan,
                             'order'       => (int) $c->order,
+                        ]),
+                    'tools' => $practice_rule->tools
+                        ->sortBy('order')->values()
+                        ->map(fn ($t) => [
+                            'id'    => $t->id,
+                            'kind'  => $t->kind,
+                            'label' => $t->label,
+                            'order' => (int) $t->order,
                         ]),
                     'materi_label' => [
                         'title' => $practice_rule->materi?->title,
@@ -209,6 +218,18 @@ class PracticeRuleController extends Controller
                     ->all()
             );
 
+            if (!empty($data['tools'])) {
+                $r->tools()->createMany(
+                    collect($data['tools'])->values()
+                        ->map(fn ($t, $idx) => [
+                            'kind'  => $t['kind'],
+                            'label' => $t['label'],
+                            'order' => $idx + 1,
+                        ])
+                        ->all()
+                );
+            }
+
             return $r;
         });
 
@@ -249,6 +270,21 @@ class PracticeRuleController extends Controller
                         ])
                         ->all()
                 );
+            }
+
+            if (array_key_exists('tools', $data)) {
+                $practice_rule->tools()->delete();
+                if (!empty($data['tools'])) {
+                    $practice_rule->tools()->createMany(
+                        collect($data['tools'])->values()
+                            ->map(fn ($t, $idx) => [
+                                'kind'  => $t['kind'],
+                                'label' => $t['label'],
+                                'order' => $idx + 1,
+                            ])
+                            ->all()
+                    );
+                }
             }
         });
 

@@ -161,16 +161,13 @@ function KelasDrawerContent({ kelasId }: { kelasId: number }) {
                                     <TableRow>
                                         <TableHead>Materi</TableHead>
                                         <TableHead>Dibuat Oleh</TableHead>
-                                        <TableHead className="text-right">
-                                            Created At
-                                        </TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {materials.length === 0 ? (
                                         <TableRow>
                                             <TableCell
-                                                colSpan={3}
+                                                colSpan={2}
                                                 className="text-center text-sm text-muted-foreground"
                                             >
                                                 Belum ada materi untuk kelas
@@ -202,9 +199,6 @@ function KelasDrawerContent({ kelasId }: { kelasId: number }) {
                                                 <TableCell>
                                                     {m.created_by.name ??
                                                         m.created_by.email}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {m.created_at}
                                                 </TableCell>
                                             </TableRow>
                                         ))

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/Components/ui/button";
 import { Label } from "@/Components/ui/label";
 import { Textarea } from "@/Components/ui/textarea";
+import { Input } from "@/Components/ui/input";
 import { Badge } from "@/Components/ui/badge";
 import { toast } from "sonner";
 import type { PracticeResultDetail } from "../types";
@@ -32,6 +33,11 @@ export default function PracticeResultDrawerContent({
     const [notes, setNotes] = useState<Record<number, string>>({});
     const [scores, setScores] = useState<Record<number, string>>({});
 
+    // 3 komponen nilai (manual): Alat&Bahan 25%, SOP/APD/K3L 15%, Praktek 60%
+    const [scoreAB, setScoreAB] = useState("");
+    const [scoreSOP, setScoreSOP] = useState("");
+    const [scorePraktik, setScorePraktik] = useState("");
+
     useEffect(() => {
         setFeedback(detail.feedback ?? "");
         setNotes(
@@ -52,44 +58,64 @@ export default function PracticeResultDrawerContent({
                 ]),
             ),
         );
+        setScoreAB(
+            detail.score_alat_bahan != null
+                ? String(detail.score_alat_bahan)
+                : "",
+        );
+        setScoreSOP(
+            detail.score_sop_k3l != null ? String(detail.score_sop_k3l) : "",
+        );
+        setScorePraktik(
+            detail.score_praktik != null ? String(detail.score_praktik) : "",
+        );
     }, [detail]);
 
     const mutations = usePracticeResultMutations(onSaved);
 
-    // Hitung preview rata-rata dari yang sudah diisi
-    const { computedAvg, missingCount } = useMemo(() => {
-        const checklists = detail.practice.checklists;
-        const missing = checklists.filter((c) => {
-            const v = scores[c.id];
-            return v === "" || v === undefined || v === null;
-        }).length;
-        const filled = checklists
-            .map((c) => Number(scores[c.id]))
-            .filter((v) => Number.isFinite(v));
-        const avg =
-            filled.length > 0
-                ? Math.round(filled.reduce((a, b) => a + b, 0) / filled.length)
-                : null;
-        return { computedAvg: avg, missingCount: missing };
-    }, [scores, detail.practice.checklists]);
+    // Total berbobot dari 3 komponen nilai: AB 25% + SOP/APD/K3L 15% + Praktek 60%
+    const { allFilled, valid, weightedTotal } = useMemo(() => {
+        const toNum = (v: string) => {
+            const n = Number(v);
+            return v.trim() !== "" && Number.isFinite(n) ? n : null;
+        };
+        const inRange = (n: number | null) => n !== null && n >= 0 && n <= 100;
+
+        const ab = toNum(scoreAB);
+        const sop = toNum(scoreSOP);
+        const praktik = toNum(scorePraktik);
+
+        const allFilled = ab !== null && sop !== null && praktik !== null;
+        const valid = inRange(ab) && inRange(sop) && inRange(praktik);
+        const weightedTotal = valid
+            ? Math.round(ab! * 0.25 + sop! * 0.15 + praktik! * 0.6)
+            : null;
+
+        return { allFilled, valid, weightedTotal };
+    }, [scoreAB, scoreSOP, scorePraktik]);
 
     const save = async () => {
-        if (missingCount > 0) {
+        if (!valid) {
             toast.error(
-                `Masih ada ${missingCount} checklist yang belum dinilai. Isi semua nilai terlebih dahulu.`,
+                "Isi ketiga nilai (Alat & Bahan, SOP/APD/K3L, Praktek) dengan angka 0–100.",
             );
             return;
         }
 
         const notes_payload = detail.practice.checklists.map((item) => ({
             checklist_id: item.id,
-            score: Math.round(Number(scores[item.id])),
+            score: scores[item.id]?.trim()
+                ? Math.round(Number(scores[item.id]))
+                : null,
             note: notes[item.id]?.trim() || null,
         }));
 
         try {
             await mutations.grade(detail.id, {
                 feedback: feedback.trim() || null,
+                score_alat_bahan: Math.round(Number(scoreAB)),
+                score_sop_k3l: Math.round(Number(scoreSOP)),
+                score_praktik: Math.round(Number(scorePraktik)),
                 notes: notes_payload,
             });
         } catch (e: any) {
@@ -200,38 +226,116 @@ export default function PracticeResultDrawerContent({
                     </div>
                 )}
             </div>
-            <div className="rounded-3xl border bg-background p-4 shadow-sm">
-                {missingCount > 0 && (
-                    <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-50/70 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                        {missingCount} checklist belum dinilai — isi semua nilai
-                        sebelum menyimpan.
+            {detail.practice.tools?.length > 0 && (
+                <div className="rounded-3xl border bg-background p-4 shadow-sm">
+                    <div className="mb-3 font-semibold">
+                        Alat &amp; Bahan (jawaban siswa)
                     </div>
-                )}
+                    <div className="grid gap-4 md:grid-cols-2">
+                        {(["alat", "bahan"] as const).map((kind) => {
+                            const rows = detail.practice.tools.filter(
+                                (t) => t.kind === kind,
+                            );
+                            if (rows.length === 0) return null;
+                            return (
+                                <div
+                                    key={kind}
+                                    className="rounded-2xl border p-3"
+                                >
+                                    <div className="mb-2 text-sm font-semibold capitalize">
+                                        {kind}
+                                    </div>
+                                    <ul className="space-y-2 text-sm">
+                                        {rows.map((t, i) => (
+                                            <li key={i} className="space-y-1">
+                                                <div className="flex gap-2">
+                                                    <span className="font-medium">
+                                                        {t.label || "-"}:
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        {t.value?.trim() || "—"}
+                                                    </span>
+                                                </div>
+                                                {t.photos &&
+                                                    t.photos.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {t.photos.map(
+                                                                (p) => (
+                                                                    <a
+                                                                        key={
+                                                                            p.id
+                                                                        }
+                                                                        href={
+                                                                            p.view_url
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noreferrer"
+                                                                    >
+                                                                        <img
+                                                                            src={
+                                                                                p.view_url
+                                                                            }
+                                                                            alt="Foto"
+                                                                            className="h-14 w-14 rounded border object-cover"
+                                                                        />
+                                                                    </a>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    )}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
-                <div className="grid gap-3 md:grid-cols-3 mb-4">
-                    <InfoCard
-                        label="Nilai rata-rata (preview)"
-                        value={
-                            computedAvg !== null ? (
-                                <span className="text-xl font-bold text-primary">
-                                    {computedAvg}
-                                </span>
-                            ) : (
-                                <span className="text-muted-foreground">—</span>
-                            )
-                        }
+            <div className="rounded-3xl border bg-background p-4 shadow-sm">
+                <div className="mb-3 font-semibold">Penilaian Praktek</div>
+
+                <div className="grid gap-3 sm:grid-cols-3">
+                    <ScoreInput
+                        label="Nilai Alat & Bahan"
+                        weight="25%"
+                        value={scoreAB}
+                        onChange={setScoreAB}
                     />
-                    <InfoCard
-                        label="Item dinilai"
-                        value={`${detail.practice.checklists.length - missingCount} / ${detail.practice.checklists.length}`}
+                    <ScoreInput
+                        label="Nilai SOP, APD & K3L"
+                        weight="15%"
+                        value={scoreSOP}
+                        onChange={setScoreSOP}
                     />
+                    <ScoreInput
+                        label="Nilai Praktek"
+                        weight="60%"
+                        value={scorePraktik}
+                        onChange={setScorePraktik}
+                    />
+                </div>
+
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border bg-primary/5 p-3">
+                        <div className="text-xs text-muted-foreground">
+                            Nilai Total (preview)
+                        </div>
+                        <div className="mt-1 text-2xl font-bold text-primary">
+                            {weightedTotal !== null ? weightedTotal : "—"}
+                        </div>
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                            25% Alat&amp;Bahan + 15% SOP/APD/K3L + 60% Praktek
+                        </div>
+                    </div>
                     <InfoCard
                         label="Nilai tersimpan"
                         value={detail.total_score ?? "-"}
                     />
                 </div>
 
-                <div className="grid gap-2">
+                <div className="mt-4 grid gap-2">
                     <Label>
                         Feedback umum{" "}
                         <span className="text-muted-foreground font-normal">
@@ -247,7 +351,7 @@ export default function PracticeResultDrawerContent({
                 </div>
 
                 <div className="mt-4 flex justify-end">
-                    <Button disabled={missingCount > 0} onClick={save}>
+                    <Button disabled={!allFilled} onClick={save}>
                         Simpan Penilaian
                     </Button>
                 </div>
@@ -268,6 +372,38 @@ function InfoCard({ label, value }: { label: string; value: React.ReactNode }) {
         <div className="rounded-2xl border p-3">
             <div className="text-xs text-muted-foreground">{label}</div>
             <div className="mt-1 font-medium">{value}</div>
+        </div>
+    );
+}
+
+function ScoreInput({
+    label,
+    weight,
+    value,
+    onChange,
+}: {
+    label: string;
+    weight: string;
+    value: string;
+    onChange: (v: string) => void;
+}) {
+    return (
+        <div className="rounded-2xl border p-3">
+            <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-medium">{label}</div>
+                <Badge variant="secondary" className="text-[10px]">
+                    {weight}
+                </Badge>
+            </div>
+            <Input
+                type="number"
+                min={0}
+                max={100}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="0–100"
+                className="mt-2"
+            />
         </div>
     );
 }

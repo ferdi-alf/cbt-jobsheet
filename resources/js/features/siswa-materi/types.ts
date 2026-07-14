@@ -43,6 +43,17 @@ export type PracticeChecklist = {
     photos: PracticePhoto[];
 };
 
+export type PracticeToolPhoto = { id: number; view_url: string };
+
+export type PracticeToolItem = {
+    rule_tool_id: number | null;
+    kind: "alat" | "bahan";
+    label: string | null;
+    value: string | null;
+    is_extra: boolean;
+    photos?: PracticeToolPhoto[];
+};
+
 export type SiswaMateriDetail = {
     id: number;
     title: string;
@@ -51,7 +62,11 @@ export type SiswaMateriDetail = {
     elemen?: string | null;
     tujuan_pembelajaran?: string | null;
     praktik_text?: string | null;
-    pdf: { view_url: string; download_url?: string | null };
+    pdf: {
+        view_url: string;
+        download_url?: string | null;
+        ext?: string | null;
+    };
     practice: {
         rule_id?: number | null;
         title?: string | null;
@@ -63,9 +78,13 @@ export type SiswaMateriDetail = {
         submitted_at?: string | null;
         graded_at?: string | null;
         total_score?: number | null;
+        score_alat_bahan?: number | null;
+        score_sop_k3l?: number | null;
+        score_praktik?: number | null;
         feedback?: string | null;
         apd_photos: ApdPhoto[]; // ← baru
         checklists: PracticeChecklist[];
+        tools: PracticeToolItem[];
     };
 };
 

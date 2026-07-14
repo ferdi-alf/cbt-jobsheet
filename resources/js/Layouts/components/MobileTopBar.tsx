@@ -24,7 +24,7 @@ export default function MobileTopbar({
             className="md:hidden fixed top-0 left-0 right-0 z-40 h-14"
             style={{
                 background:
-                    "linear-gradient(135deg, #1a3a6b 0%, #1565C0 60%, #0d47a1 100%)",
+                    "linear-gradient(135deg, #004A80 0%, #0072AD 50%, #0090D0 100%)",
             }}
         >
             <div className="h-full px-3 flex items-center justify-between gap-2">

@@ -13,6 +13,7 @@ import type { SiswaMateriDetail } from "../types";
 import PracticeChecklistPanel from "./PracticeChecklistPanel";
 import PracticeSubmitButton from "./PracticeSubmitButton";
 import ApdPhotoSection from "./ApdPhotoSection";
+import PracticeToolsSection from "./PracticeToolsSection";
 
 function statusBadges(status: string) {
     if (status === "draft") {
@@ -123,9 +124,33 @@ export default function PracticeTab({
                     practice.total_score !== null && (
                         <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 text-sm dark:border-emerald-900 dark:bg-emerald-950/30">
                             <div className="font-medium">Nilai praktek</div>
-                            <div className="mt-1 text-xl font-semibold">
+                            <div className="mt-1 text-2xl font-semibold">
                                 {practice.total_score}
                             </div>
+                            {(initial.score_alat_bahan != null ||
+                                initial.score_sop_k3l != null ||
+                                initial.score_praktik != null) && (
+                                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                    <span>
+                                        Alat &amp; Bahan (25%):{" "}
+                                        <b className="text-foreground">
+                                            {initial.score_alat_bahan ?? "—"}
+                                        </b>
+                                    </span>
+                                    <span>
+                                        SOP/APD/K3L (15%):{" "}
+                                        <b className="text-foreground">
+                                            {initial.score_sop_k3l ?? "—"}
+                                        </b>
+                                    </span>
+                                    <span>
+                                        Praktek (60%):{" "}
+                                        <b className="text-foreground">
+                                            {initial.score_praktik ?? "—"}
+                                        </b>
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -135,6 +160,14 @@ export default function PracticeTab({
                     </div>
                 )}
             </div>
+
+            {practice.rule_id && (
+                <PracticeToolsSection
+                    materiId={materiId}
+                    initial={initial.tools ?? []}
+                    canEdit={canEdit}
+                />
+            )}
 
             <Accordion
                 type="single"

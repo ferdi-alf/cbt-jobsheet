@@ -30,6 +30,11 @@ class PracticeRuleUpdateRequest extends FormRequest
             'checklists.*.title'       => ['required', 'string', 'max:255'],
             'checklists.*.standar'     => ['nullable', 'string', 'max:255'],
             'checklists.*.keterangan'  => ['nullable', 'string'],
+
+            // Alat & Bahan (opsional) — didefinisikan guru, diisi siswa
+            'tools'          => ['sometimes', 'nullable', 'array'],
+            'tools.*.kind'   => ['required', 'in:alat,bahan'],
+            'tools.*.label'  => ['required', 'string', 'max:255'],
         ];
     }
 }

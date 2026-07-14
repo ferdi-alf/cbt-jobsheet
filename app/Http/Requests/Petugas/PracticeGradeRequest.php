@@ -15,10 +15,17 @@ class PracticeGradeRequest extends FormRequest
     {
         return [
             'feedback'              => ['nullable', 'string'],
-            'notes'                 => ['required', 'array'],
+
+            // 3 komponen nilai (manual, 0-100)
+            'score_alat_bahan'      => ['required', 'integer', 'min:0', 'max:100'],
+            'score_sop_k3l'         => ['required', 'integer', 'min:0', 'max:100'],
+            'score_praktik'         => ['required', 'integer', 'min:0', 'max:100'],
+
+            // Catatan per-checklist (opsional)
+            'notes'                 => ['nullable', 'array'],
             'notes.*.checklist_id'  => ['required', 'integer', 'exists:practice_checklists,id'],
             'notes.*.note'          => ['nullable', 'string'],
-            'notes.*.score'         => ['required', 'integer', 'min:0', 'max:100'],
+            'notes.*.score'         => ['nullable', 'integer', 'min:0', 'max:100'],
         ];
     }
 }

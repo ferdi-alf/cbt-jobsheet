@@ -47,7 +47,6 @@ export default function UsersIndex() {
                 return `${row.guru?.kelas ?? "-"} / ${row.guru?.mapel ?? "-"}`;
             },
         },
-        { key: "created_at", label: "Created At" },
     ];
 
     const actions = (row: UserRow) => (

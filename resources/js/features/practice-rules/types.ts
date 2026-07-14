@@ -34,6 +34,15 @@ export type PracticeRuleDetail = {
 
 // types.ts
 
+export type RuleToolKind = "alat" | "bahan";
+
+export type RuleToolItem = {
+    id?: number;
+    kind: RuleToolKind;
+    label: string;
+    order?: number;
+};
+
 export type PracticeRuleEditDetail = {
     id: number;
     materi_id: number;
@@ -46,6 +55,7 @@ export type PracticeRuleEditDetail = {
         keterangan?: string | null;
         order?: number;
     }[];
+    tools?: RuleToolItem[];
     materi_label?: { title?: string; kelas?: string; mapel?: string };
 };
 

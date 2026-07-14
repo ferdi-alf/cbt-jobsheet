@@ -236,6 +236,12 @@ Route::middleware(['auth', 'role:siswa'])->group(function () {
             ->name('api.siswa.practice.photos.store');
         Route::post('/materis/{materi}/practice/submit', [SiswaMateriController::class, 'submitPractice'])
             ->name('api.siswa.practice.submit');
+
+        Route::post('/materis/{materi}/practice/tools', [SiswaMateriController::class, 'saveTools'])
+            ->name('api.siswa.practice.tools.save');
+
+        Route::post('/materis/{materi}/practice/tools/{ruleTool}/photo', [SiswaMateriController::class, 'storeToolPhoto'])
+            ->name('api.siswa.practice.tools.photo.store');
     });
 
  
@@ -246,6 +252,11 @@ Route::middleware(['auth'])->group(function () {
         ->name('api.practice-photos.show');
     Route::delete('/api/practice-photos/{photo}', [SiswaMateriController::class, 'destroyPhoto'])
         ->name('api.practice-photos.destroy');
+
+    Route::get('/api/practice-tool-photos/{photo}', [SiswaMateriController::class, 'viewToolPhoto'])
+        ->name('api.practice-tool-photos.show');
+    Route::delete('/api/practice-tool-photos/{photo}', [SiswaMateriController::class, 'destroyToolPhoto'])
+        ->name('api.practice-tool-photos.destroy');
 
     Route::get('/profile', fn () => inertia('Profile/Index'))->name('profile.index');
 
