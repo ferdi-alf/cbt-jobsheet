@@ -28,7 +28,6 @@ export default function JurusansIndex() {
                 ),
         },
         { key: "name", label: "Nama Jurusan" },
-        { key: "created_at", label: "Dibuat", align: "left" as const },
     ];
 
     const actions = (row: JurusanRow) => (

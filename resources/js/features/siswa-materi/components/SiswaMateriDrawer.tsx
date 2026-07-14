@@ -4,7 +4,7 @@ import EntityDrawer from "@/Components/drawers/EntityDrawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
 
 import type { SiswaMateriDetail } from "../types";
-import PdfPagesTab from "./PdfPagesTab";
+import MateriFileViewer from "@/Components/common/MateriFileViewer";
 import { getSiswaMateri } from "../api/siswaMateris.api";
 import PracticeTab from "./PracticeTab";
 
@@ -38,16 +38,17 @@ function DrawerContent({ materi }: { materi: SiswaMateriDetail }) {
                 </div>
 
                 <TabsList>
-                    <TabsTrigger value="pdf">PDF</TabsTrigger>
+                    <TabsTrigger value="pdf">Materi</TabsTrigger>
                     <TabsTrigger value="practice">Praktek</TabsTrigger>
                 </TabsList>
             </div>
 
             <TabsContent value="pdf" className="mt-0">
                 {tab === "pdf" && (
-                    <PdfPagesTab
+                    <MateriFileViewer
                         viewUrl={materi.pdf.view_url}
                         downloadUrl={materi.pdf.download_url ?? null}
+                        ext={materi.pdf.ext ?? null}
                     />
                 )}
             </TabsContent>

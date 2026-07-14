@@ -15,6 +15,9 @@ class PracticeSubmission extends Model
         'is_late',
         'submitted_at',
         'total_score',
+        'score_alat_bahan',
+        'score_sop_k3l',
+        'score_praktik',
         'feedback',
         'graded_by',
         'graded_at',
@@ -25,6 +28,9 @@ class PracticeSubmission extends Model
         'submitted_at' => 'datetime',
         'graded_at' => 'datetime',
         'total_score' => 'integer',
+        'score_alat_bahan' => 'integer',
+        'score_sop_k3l' => 'integer',
+        'score_praktik' => 'integer',
     ];
 
     public function apdPhotos(): HasMany
@@ -50,5 +56,15 @@ class PracticeSubmission extends Model
     public function items(): HasMany
     {
         return $this->hasMany(PracticeSubmissionItem::class, 'submission_id');
+    }
+
+    public function tools(): HasMany
+    {
+        return $this->hasMany(PracticeSubmissionTool::class, 'submission_id')->orderBy('order');
+    }
+
+    public function toolPhotos(): HasMany
+    {
+        return $this->hasMany(PracticeSubmissionToolPhoto::class, 'submission_id');
     }
 }

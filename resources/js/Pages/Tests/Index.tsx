@@ -69,9 +69,7 @@ export default function TestsIndex() {
 
                 return <span className="truncate">{display}</span>;
             },
-        },
-        { key: "created_at", label: "Created At" },
-    ];
+        },    ];
 
     const actions = (row: TestRow) => (
         <>

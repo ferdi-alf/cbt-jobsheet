@@ -1,15 +1,26 @@
 import AdminLayout from "@/Layouts/AdminLayout";
 import { Head } from "@inertiajs/react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Badge } from "@/Components/ui/badge";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+} from "@/Components/ui/dialog";
+import { cn } from "@/lib/utils";
 import {
     Users,
     GraduationCap,
     Building2,
+    Boxes,
     BookOpen,
     FileText,
     Clock,
     TrendingUp,
+    ChevronRight,
 } from "lucide-react";
 import {
     BarChart,
@@ -35,10 +46,19 @@ type MateriRow = {
 };
 type KelasRow = {
     kelas: string;
+    tingkat?: string | null;
+    jurusan?: string | null;
     total_siswa: number;
     avg_pretest: number | null;
     avg_posttest: number | null;
     praktik_selesai: number;
+};
+type GuruItem = { name: string; mapel?: string | null };
+type JurusanDetailRow = {
+    name: string;
+    logo_url: string | null;
+    total_kelas: number;
+    gurus: GuruItem[];
 };
 type ActivityRow = {
     student_name: string;
@@ -52,6 +72,7 @@ interface Props {
     stats: {
         total_siswa: number;
         total_guru: number;
+        total_jurusan: number;
         total_kelas: number;
         total_materi: number;
     };
@@ -60,6 +81,7 @@ interface Props {
     materiThisMonth: MateriRow[];
     kelasSummary: KelasRow[];
     recentActivity: ActivityRow[];
+    jurusanDetail: JurusanDetailRow[];
 }
 
 function StatCard({
@@ -67,14 +89,35 @@ function StatCard({
     value,
     icon,
     sub,
+    onClick,
 }: {
     label: string;
     value: number;
     icon: React.ReactNode;
     sub?: string;
+    onClick?: () => void;
 }) {
     return (
-        <div className="group relative overflow-hidden rounded-[28px] border bg-background p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+        <div
+            onClick={onClick}
+            role={onClick ? "button" : undefined}
+            tabIndex={onClick ? 0 : undefined}
+            onKeyDown={
+                onClick
+                    ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              onClick();
+                          }
+                      }
+                    : undefined
+            }
+            className={cn(
+                "group relative overflow-hidden rounded-[28px] border bg-background p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md",
+                onClick &&
+                    "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+            )}
+        >
             <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/80 via-primary/40 to-transparent" />
             <div className="absolute -right-12 -top-12 h-28 w-28 rounded-full bg-primary/10 blur-3xl" />
 
@@ -91,6 +134,12 @@ function StatCard({
                             {sub && (
                                 <p className="mt-1 text-xs text-muted-foreground">
                                     {sub}
+                                </p>
+                            )}
+                            {onClick && (
+                                <p className="mt-1 flex items-center gap-0.5 text-xs font-medium text-primary">
+                                    Lihat detail
+                                    <ChevronRight className="h-3 w-3" />
                                 </p>
                             )}
                         </div>
@@ -149,7 +198,10 @@ export default function AdminDashboard({
     materiThisMonth,
     kelasSummary,
     recentActivity,
+    jurusanDetail,
 }: Props) {
+    const [dialog, setDialog] = useState<null | "jurusan" | "kelas">(null);
+
     return (
         <AdminLayout>
             <Head title="Dashboard Admin" />
@@ -165,7 +217,7 @@ export default function AdminDashboard({
                 </div>
 
                 {/* Stat Cards */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                     <StatCard
                         label="Total Siswa"
                         value={stats.total_siswa}
@@ -177,9 +229,18 @@ export default function AdminDashboard({
                         icon={<GraduationCap className="h-4 w-4" />}
                     />
                     <StatCard
+                        label="Total Jurusan"
+                        value={stats.total_jurusan}
+                        icon={<Boxes className="h-4 w-4" />}
+                        sub="Program studi"
+                        onClick={() => setDialog("jurusan")}
+                    />
+                    <StatCard
                         label="Total Kelas"
                         value={stats.total_kelas}
                         icon={<Building2 className="h-4 w-4" />}
+                        sub={`${stats.total_siswa.toLocaleString()} siswa`}
+                        onClick={() => setDialog("kelas")}
                     />
                     <StatCard
                         label="Total Materi"
@@ -502,6 +563,167 @@ export default function AdminDashboard({
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Dialog: Detail Jurusan + Guru pengampu */}
+                <Dialog
+                    open={dialog === "jurusan"}
+                    onOpenChange={(o) => !o && setDialog(null)}
+                >
+                    <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Boxes className="h-5 w-5" />
+                                Detail Jurusan / Program Studi
+                            </DialogTitle>
+                            <DialogDescription>
+                                {stats.total_jurusan} jurusan beserta guru
+                                pengampunya.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {jurusanDetail.length === 0 ? (
+                            <p className="py-8 text-center text-sm text-muted-foreground">
+                                Belum ada jurusan.
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {jurusanDetail.map((j, i) => (
+                                    <div
+                                        key={i}
+                                        className="rounded-xl border p-4"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            {j.logo_url ? (
+                                                <img
+                                                    src={j.logo_url}
+                                                    alt={j.name}
+                                                    className="h-9 w-9 rounded-md object-contain"
+                                                />
+                                            ) : (
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                                                    <Boxes className="h-4 w-4" />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0 flex-1">
+                                                <p className="truncate font-semibold">
+                                                    {j.name}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {j.total_kelas} kelas ·{" "}
+                                                    {j.gurus.length} guru
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {j.gurus.length > 0 ? (
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                                {j.gurus.map((g, gi) => (
+                                                    <Badge
+                                                        key={gi}
+                                                        variant="secondary"
+                                                        className="gap-1 font-normal"
+                                                    >
+                                                        <GraduationCap className="h-3 w-3" />
+                                                        {g.name}
+                                                        {g.mapel
+                                                            ? ` · ${g.mapel}`
+                                                            : ""}
+                                                    </Badge>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="mt-2 text-xs text-muted-foreground">
+                                                Belum ada guru.
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
+
+                {/* Dialog: Detail Kelas + total siswa */}
+                <Dialog
+                    open={dialog === "kelas"}
+                    onOpenChange={(o) => !o && setDialog(null)}
+                >
+                    <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <Building2 className="h-5 w-5" />
+                                Detail Kelas
+                            </DialogTitle>
+                            <DialogDescription>
+                                Rincian jumlah siswa per kelas.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        {kelasSummary.length === 0 ? (
+                            <p className="py-8 text-center text-sm text-muted-foreground">
+                                Belum ada kelas.
+                            </p>
+                        ) : (
+                            <div className="overflow-x-auto rounded-xl border">
+                                <table className="w-full text-sm">
+                                    <thead>
+                                        <tr className="border-b bg-muted/40">
+                                            <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
+                                                Kelas
+                                            </th>
+                                            <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
+                                                Jurusan
+                                            </th>
+                                            <th className="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">
+                                                Tingkat
+                                            </th>
+                                            <th className="px-4 py-2.5 text-right text-xs font-medium text-muted-foreground">
+                                                Total Siswa
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {kelasSummary.map((k, i) => (
+                                            <tr
+                                                key={i}
+                                                className="hover:bg-muted/30"
+                                            >
+                                                <td className="px-4 py-3 font-medium">
+                                                    {k.kelas}
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {k.jurusan ?? "—"}
+                                                </td>
+                                                <td className="px-4 py-3 text-muted-foreground">
+                                                    {k.tingkat ?? "—"}
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                                                    {k.total_siswa}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot>
+                                        <tr className="border-t bg-muted/40">
+                                            <td
+                                                className="px-4 py-2.5 font-semibold"
+                                                colSpan={3}
+                                            >
+                                                Total
+                                            </td>
+                                            <td className="px-4 py-2.5 text-right font-bold tabular-nums">
+                                                {kelasSummary.reduce(
+                                                    (a, k) => a + k.total_siswa,
+                                                    0,
+                                                )}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
+                    </DialogContent>
+                </Dialog>
             </div>
         </AdminLayout>
     );

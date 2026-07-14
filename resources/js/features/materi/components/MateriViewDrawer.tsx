@@ -7,13 +7,14 @@ import { downloadFile } from "@/lib/download";
 
 import { getMateri } from "../api/materi.api";
 import type { MateriDetail } from "../types";
-import MateriPdfPagesTab from "./MateriPdfPagesTab";
+import MateriFileViewer from "@/Components/common/MateriFileViewer";
 import MateriRelatedTab from "./MateriRelatedTab";
 import { toast } from "sonner";
 
 function MateriDrawerContent({ materi }: { materi: MateriDetail }) {
     const pdfViewUrl = materi.pdf?.url ?? null;
     const downloadUrl = materi.pdf?.download_url ?? null;
+    const fileExt = materi.pdf?.ext ?? null;
     const exportZipUrl = materi.export_results_zip_url ?? null;
     const [downloadingZip, setDownloadingZip] = useState(false);
 
@@ -66,7 +67,7 @@ function MateriDrawerContent({ materi }: { materi: MateriDetail }) {
                 <div className="sticky top-0 z-10 border-b bg-background pb-2">
                     <div className="flex items-center justify-between gap-3">
                         <TabsList>
-                            <TabsTrigger value="pdf">PDF</TabsTrigger>
+                            <TabsTrigger value="pdf">Materi</TabsTrigger>
                             <TabsTrigger value="related">Terkait</TabsTrigger>
                         </TabsList>
 
@@ -111,16 +112,11 @@ function MateriDrawerContent({ materi }: { materi: MateriDetail }) {
                         {materi.kelas} • {materi.mapel}
                     </div>
 
-                    {!pdfViewUrl ? (
-                        <div className="text-sm text-muted-foreground">
-                            PDF tidak tersedia.
-                        </div>
-                    ) : (
-                        <MateriPdfPagesTab
-                            viewUrl={pdfViewUrl}
-                            downloadUrl={downloadUrl}
-                        />
-                    )}
+                    <MateriFileViewer
+                        viewUrl={pdfViewUrl}
+                        downloadUrl={downloadUrl}
+                        ext={fileExt}
+                    />
                 </TabsContent>
 
                 <TabsContent value="related" className="mt-4">

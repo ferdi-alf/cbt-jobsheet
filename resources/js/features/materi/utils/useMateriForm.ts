@@ -1,5 +1,28 @@
 import type { MateriDetail } from "../types";
 
+/**
+ * Teks default SOP / K3L / APD yang otomatis tertanam saat membuat materi baru.
+ * Guru masih bisa mengedit / menambah sesuai kebutuhan praktek.
+ */
+export const DEFAULT_K3L_APD_TEXT = `Ikuti Aturan Sebelum melakukan PRAKTEK dibawah ini :
+1. Gunakan Pakaian Praktek (Wearpack).
+2. Gunakan Sarung Tangan Jika diperlukan.
+3. Gunakan Alat dan Bahan Praktek sesuai fungsinya.
+4. Pastikan Area Kerja Bersih dan Aman.
+5. Matikan Mesin dan didinginkan sebelum pemeriksaan.`;
+
+/** Tipe file materi yang diperbolehkan untuk diunggah. */
+export const MATERI_ACCEPT_EXT = [
+    "pdf",
+    "doc",
+    "docx",
+    "ppt",
+    "pptx",
+    "png",
+    "jpg",
+    "jpeg",
+];
+
 export type MateriFormState = {
     title: string;
     praktik_text: string;
@@ -15,7 +38,10 @@ export function mapInitialMateriForm(detail?: MateriDetail): MateriFormState {
     return {
         title: detail?.title ?? "",
         praktik_text: detail?.praktik_text ?? "",
-        k3_alat_bahan: detail?.k3_alat_bahan ?? "",
+        // Materi baru (tanpa detail) diisi teks default; saat edit gunakan nilai tersimpan.
+        k3_alat_bahan: detail
+            ? (detail.k3_alat_bahan ?? "")
+            : DEFAULT_K3L_APD_TEXT,
         elemen: detail?.elemen ?? "",
         tujuan_pembelajaran: detail?.tujuan_pembelajaran ?? "",
         kelas_id: detail?.kelas_id ? String(detail.kelas_id) : "",

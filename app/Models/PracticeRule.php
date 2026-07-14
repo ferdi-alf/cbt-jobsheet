@@ -40,4 +40,9 @@ class PracticeRule extends Model
         return $this->hasMany(PracticeChecklist::class, 'practice_rule_id')->orderBy('order');
     }
 
+    public function tools(): HasMany
+    {
+        return $this->hasMany(PracticeRuleTool::class, 'practice_rule_id')->orderBy('order');
+    }
+
 }

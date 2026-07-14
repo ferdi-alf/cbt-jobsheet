@@ -31,8 +31,11 @@ import { getMateri } from "../api/materi.api";
 import {
     buildMateriFormData,
     mapInitialMateriForm,
+    MATERI_ACCEPT_EXT,
     type MateriFormState,
 } from "../utils/useMateriForm";
+
+const MATERI_ACCEPT_ATTR = MATERI_ACCEPT_EXT.map((e) => `.${e}`).join(",");
 import type { LookupMapelItem } from "../types";
 
 const TINGKAT_TO_FASE: Record<string, "E" | "F"> = {
@@ -131,8 +134,9 @@ export default function MateriFormDialog({
 
     const onPickFile = (file: File | null) => {
         if (!file) return set("pdf", null);
-        if (file.type !== "application/pdf") {
-            toast.error("File harus PDF");
+        const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+        if (!MATERI_ACCEPT_EXT.includes(ext)) {
+            toast.error("Format harus PDF, Word, PPT, PNG, atau JPG");
             return;
         }
         set("pdf", file);
@@ -147,7 +151,7 @@ export default function MateriFormDialog({
     const submit = async () => {
         const fd = buildMateriFormData(form);
         if (!isEdit && !form.pdf) {
-            toast.error("PDF wajib diupload");
+            toast.error("File materi wajib diupload");
             return;
         }
         if (isEdit) await mutations.update(materiId!, fd);
@@ -173,7 +177,7 @@ export default function MateriFormDialog({
                     <DialogDescription>
                         {isEdit
                             ? "Perbarui detail materi."
-                            : "Upload PDF materi dan isi detailnya."}
+                            : "Upload file materi (PDF/Word/PPT/Gambar) dan isi detailnya."}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -215,21 +219,23 @@ export default function MateriFormDialog({
 
                     <div className="grid gap-2">
                         <Label>Elemen</Label>
-                        <Input
+                        <Textarea
                             value={form.elemen}
                             onChange={(e) => set("elemen", e.target.value)}
                             placeholder="Contoh: Elemen 3.1 — Keamanan Jaringan..."
+                            rows={4}
                         />
                     </div>
 
                     <div className="grid gap-2">
                         <Label>Tujuan Pembelajaran</Label>
-                        <Input
+                        <Textarea
                             value={form.tujuan_pembelajaran}
                             onChange={(e) =>
                                 set("tujuan_pembelajaran", e.target.value)
                             }
                             placeholder="Contoh: Siswa mampu memahami konsep jaringan..."
+                            rows={4}
                         />
                     </div>
 
@@ -350,9 +356,9 @@ export default function MateriFormDialog({
                         </div>
                     )}
 
-                    {/* PDF Upload */}
+                    {/* File Materi Upload */}
                     <div className="grid gap-2">
-                        <Label>PDF</Label>
+                        <Label>File Materi</Label>
                         <div
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={onDrop}
@@ -363,15 +369,18 @@ export default function MateriFormDialog({
                         >
                             <UploadCloud className="h-6 w-6" />
                             <div className="text-sm font-medium">
-                                Drag & drop PDF di sini
+                                Drag & drop file di sini
                             </div>
                             <div className="text-xs text-muted-foreground">
                                 atau pilih file dari perangkat
                             </div>
+                            <div className="text-xs text-muted-foreground">
+                                Format: PDF, Word, PPT, PNG, JPG (maks. 10MB)
+                            </div>
 
                             <Input
                                 type="file"
-                                accept="application/pdf"
+                                accept={MATERI_ACCEPT_ATTR}
                                 className="max-w-xs mt-2"
                                 onChange={(e) =>
                                     onPickFile(e.target.files?.[0] ?? null)
@@ -399,7 +408,7 @@ export default function MateriFormDialog({
 
                             {isEdit && !form.pdf && (
                                 <div className="text-xs text-muted-foreground mt-2">
-                                    Kosongkan jika PDF tidak diganti.
+                                    Kosongkan jika file tidak diganti.
                                 </div>
                             )}
                         </div>

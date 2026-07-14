@@ -50,9 +50,7 @@ export default function MateriIndex() {
             key: "created_by",
             label: "Dibuat Oleh",
             render: (v: any) => v?.name ?? v?.email ?? v ?? "-",
-        },
-        { key: "created_at", label: "Created At" },
-    ];
+        },    ];
 
     const actions = (row: MateriRow) => (
         <>

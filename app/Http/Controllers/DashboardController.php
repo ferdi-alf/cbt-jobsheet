@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GuruProfile;
+use App\Models\Jurusan;
 use App\Models\Kelas;
 use App\Models\Materi;
 use App\Models\PracticeRule;
@@ -31,11 +33,37 @@ class DashboardController extends Controller
     private function adminDashboard()
     {
         $stats = [
-            'total_siswa'  => User::where('role', 'siswa')->count(),
-            'total_guru'   => User::where('role', 'guru')->count(),
-            'total_kelas'  => Kelas::count(),
-            'total_materi' => Materi::count(),
+            'total_siswa'    => User::where('role', 'siswa')->count(),
+            'total_guru'     => User::where('role', 'guru')->count(),
+            'total_jurusan'  => Jurusan::count(),
+            'total_kelas'    => Kelas::count(),
+            'total_materi'   => Materi::count(),
         ];
+
+        // Detail jurusan + guru pengampunya (guru terhubung via kelas → jurusan).
+        $jurusanDetail = Jurusan::with(['kelas:id,jurusan_id'])
+            ->orderBy('name')
+            ->get()
+            ->map(function ($j) {
+                $kelasIds = $j->kelas->pluck('id');
+
+                $gurus = GuruProfile::with(['user:id,name', 'mapel:id,name'])
+                    ->whereIn('kelas_id', $kelasIds)
+                    ->get()
+                    ->map(fn ($g) => [
+                        'name'  => $g->full_name ?: ($g->user?->name ?? '-'),
+                        'mapel' => $g->mapel?->name,
+                    ])
+                    ->values();
+
+                return [
+                    'name'        => $j->name,
+                    'logo_url'    => $j->logo_url,
+                    'total_kelas' => $j->kelas->count(),
+                    'gurus'       => $gurus,
+                ];
+            })
+            ->values();
 
         $top10Posttest = TestAttempt::with(['student.siswaProfile.kelas'])
             ->whereHas('test', fn ($q) => $q->where('type', 'posttest'))
@@ -76,7 +104,7 @@ class DashboardController extends Controller
                 'mapel'      => $m->mapel?->name ?? '-',
             ]);
 
-        $kelasSummary = Kelas::all()->map(function ($k) {
+        $kelasSummary = Kelas::with('jurusan:id,name')->get()->map(function ($k) {
             $siswaIds = SiswaProfile::where('kelas_id', $k->id)->pluck('user_id');
 
             $avgPretest = TestAttempt::whereIn('student_user_id', $siswaIds)
@@ -92,6 +120,8 @@ class DashboardController extends Controller
 
             return [
                 'kelas'           => $k->name,
+                'tingkat'         => $k->tingkat,
+                'jurusan'         => $k->jurusan?->name,
                 'total_siswa'     => $siswaIds->count(),
                 'avg_pretest'     => $avgPretest  ? round($avgPretest,  1) : null,
                 'avg_posttest'    => $avgPosttest ? round($avgPosttest, 1) : null,
@@ -113,7 +143,7 @@ class DashboardController extends Controller
             ]);
 
         return Inertia::render('Admin/Dashboard', compact(
-            'stats', 'top10Posttest', 'genderData', 'materiThisMonth', 'kelasSummary', 'recentActivity'
+            'stats', 'top10Posttest', 'genderData', 'materiThisMonth', 'kelasSummary', 'recentActivity', 'jurusanDetail'
         ));
     }
 

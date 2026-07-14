@@ -19,6 +19,7 @@ import { usePracticeRuleLookups } from "../hooks/usePracticeRuleLookups";
 import { usePracticeRuleMutations } from "../hooks/usePracticeRuleMutations";
 import { getPracticeRuleForEdit } from "../api/practiceRules.api";
 import { Textarea } from "@/Components/ui/textarea";
+import { X, Plus } from "lucide-react";
 
 type ChecklistItem = {
     title: string;
@@ -62,6 +63,10 @@ export default function PracticeRuleFormDrawer({
         deadline_at: "",
     });
 
+    // Alat & Bahan — daftar label yang didefinisikan guru (diisi siswa saat praktek)
+    const [alat, setAlat] = useState<string[]>([]);
+    const [bahan, setBahan] = useState<string[]>([]);
+
     useEffect(() => {
         if (!open) return;
 
@@ -70,6 +75,8 @@ export default function PracticeRuleFormDrawer({
         if (!isEdit) {
             setForm({ materi_id: "", title: "", deadline_at: "" });
             bulk.setItems([{ title: "", standar: "", keterangan: "" }]);
+            setAlat([]);
+            setBahan([]);
             return;
         }
 
@@ -95,6 +102,17 @@ export default function PracticeRuleFormDrawer({
                     items.length
                         ? items
                         : [{ title: "", standar: "", keterangan: "" }],
+                );
+
+                setAlat(
+                    (data.tools ?? [])
+                        .filter((t) => t.kind === "alat")
+                        .map((t) => t.label ?? ""),
+                );
+                setBahan(
+                    (data.tools ?? [])
+                        .filter((t) => t.kind === "bahan")
+                        .map((t) => t.label ?? ""),
                 );
             } catch (e) {}
         })();
@@ -125,6 +143,16 @@ export default function PracticeRuleFormDrawer({
                 standar: it.standar.trim() || null,
                 keterangan: it.keterangan.trim() || null,
             })),
+            tools: [
+                ...alat
+                    .map((l) => l.trim())
+                    .filter(Boolean)
+                    .map((label) => ({ kind: "alat", label })),
+                ...bahan
+                    .map((l) => l.trim())
+                    .filter(Boolean)
+                    .map((label) => ({ kind: "bahan", label })),
+            ],
         };
 
         try {
@@ -204,6 +232,30 @@ export default function PracticeRuleFormDrawer({
                             type="datetime-local"
                             value={form.deadline_at}
                             onChange={(e) => set("deadline_at", e.target.value)}
+                        />
+                    </div>
+
+                    {/* A. Alat & Bahan — guru definisikan, siswa isi saat praktek */}
+                    <div className="grid gap-2 pt-2">
+                        <Label>A. Alat &amp; Bahan</Label>
+                        <p className="text-xs text-muted-foreground">
+                            Definisikan jenis Alat &amp; Bahan. Siswa akan
+                            mengisi nama/spesifikasi &amp; upload foto saat
+                            praktek.
+                        </p>
+                        <ToolListEditor
+                            label="1. Alat"
+                            hint="Contoh: General Tools & Bike lift, Handtools, Powertools, SST, Alat ukur, Air compressor..."
+                            items={alat}
+                            setItems={setAlat}
+                            placeholder="Jenis alat..."
+                        />
+                        <ToolListEditor
+                            label="2. Bahan"
+                            hint="Contoh: Jenis motor (CUB/Matic/Sport), Oli mesin, Lap majun, Cairan pembersih, Sparepart, Buku pedoman servis..."
+                            items={bahan}
+                            setItems={setBahan}
+                            placeholder="Jenis bahan..."
                         />
                     </div>
 
@@ -308,4 +360,74 @@ function toDatetimeLocal(iso: string | null | undefined) {
 
 function fromDatetimeLocal(v: string) {
     return v;
+}
+
+function ToolListEditor({
+    label,
+    hint,
+    items,
+    setItems,
+    placeholder,
+}: {
+    label: string;
+    hint: string;
+    items: string[];
+    setItems: (v: string[]) => void;
+    placeholder: string;
+}) {
+    return (
+        <div className="rounded-lg border p-3 space-y-2">
+            <div>
+                <div className="text-sm font-semibold">{label}</div>
+                <div className="text-xs text-muted-foreground">{hint}</div>
+            </div>
+
+            {items.length === 0 && (
+                <div className="text-xs italic text-muted-foreground">
+                    Belum ada. Klik "Tambah" untuk menambah baris.
+                </div>
+            )}
+
+            <div className="space-y-2">
+                {items.map((val, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                        <span className="w-5 shrink-0 text-xs text-muted-foreground">
+                            {idx + 1}.
+                        </span>
+                        <Input
+                            value={val}
+                            onChange={(e) => {
+                                const next = [...items];
+                                next[idx] = e.target.value;
+                                setItems(next);
+                            }}
+                            placeholder={placeholder}
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 text-destructive"
+                            onClick={() =>
+                                setItems(items.filter((_, i) => i !== idx))
+                            }
+                            aria-label="Hapus baris"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ))}
+            </div>
+
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setItems([...items, ""])}
+            >
+                <Plus className="mr-1 h-4 w-4" />
+                Tambah
+            </Button>
+        </div>
+    );
 }
